@@ -1,0 +1,118 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Organizing the effect defense has on a shooter for the 2018-19 Season:
+```{r}
+season <- "2018-19"
+
+playersyr <- rosters %>% filter(slugSeason == season)
+defenseimpactyr <- defenseimpact %>% filter(Season == season)
+
+for(i in 1:nrow(playersyr)){
+  playerid <- playersyr[i, 14]
+  playername <- allplayers %>% filter(idPlayer == as.integer(playerid))
+  playername <- playername[1,3]
+  
+
+  playerdf <- defenseimpactyr %>% filter(idPlayer == as.integer(playerid))
+  
+  zerotwo <- playerdf %>% filter(CloseDefDistRange == "0-2 Feet - Very Tight")
+  zerotwo <- zerotwo[1, 23]
+  twofour <- playerdf %>% filter(CloseDefDistRange == "2-4 Feet - Tight")
+  twofour <- twofour[1,23]
+  foursix <- playerdf %>% filter(CloseDefDistRange == "4-6 Feet - Open")
+  foursix <- foursix[1,23]
+  sixplus <- playerdf %>% filter(CloseDefDistRange == "6+ Feet - Wide Open")
+  sixplus <- sixplus[1,23]
+  
+  
+  ourdf <- as.data.frame(cbind(zerotwo, twofour, foursix, sixplus))
+  
+  
+  
+  
+  colnames(ourdf) <- c("a", "b", "c", "d")
+  ourdf <- ourdf %>% mutate(e = a + b + c + d, f = a / e, g = b / e, h = c / e, i = d / e)
+  ourdf$a = NULL
+  ourdf$b = NULL
+  ourdf$c = NULL
+  ourdf$d = NULL
+  
+  ourdf <- ourdf %>% mutate(playerid = playerid, namePlayer = as.character(playername), Season = season)
+  ourdf <- ourdf %>% select(namePlayer, playerid, Season, e:i)
+  colnames(ourdf) <- c("namePlayer", "playerid", "Season", "FG3A", "VeryTight", "Tight", "Open", "WideOpen")
+  
+  if(i == 1){
+    masterdf <- ourdf
+  } else{
+    helper <- ourdf
+    masterdf <- rbind(masterdf, ourdf)
+  }
+  
+  i = i + 1
+  
+}
+
+remove(playerid, playername, playerdf, helper, ourdf, zerotwo, twofour, foursix, sixplus)
+
+masterdf[is.na(masterdf)] <- 0
+
+
+```
+
+
+# Obtaining df that gives # of 3's attempted and proportion that were contested
+```{r}
+
+year <- "2013-14"
+roster <- rosters %>% filter(slugSeason == year)
+
+for(i in 1:nrow(roster)){
+  playerid <- roster[i, 14]
+  playername <- roster[i, 5]
+  
+    # Very Tight 3s
+    vt <- dribdefense %>% filter(Season == year) %>% filter(idPlayer == as.integer(playerid)) %>% filter( CloseDefDistRange == "0-2 Feet - Very Tight") %>% summarise(fga = sum(fg3a))
+  
+    # Tight 3s
+    t <- dribdefense %>% filter(Season == year) %>% filter(idPlayer == as.integer(playerid)) %>% filter(CloseDefDistRange == "2-4 Feet - Tight") %>% summarise(fga = sum(fg3a))
+
+    # Open 3s
+    o <- dribdefense %>% filter(Season == year) %>% filter(idPlayer == as.integer(playerid)) %>% filter( CloseDefDistRange == "4-6 Feet - Open") %>% summarise(fga = sum(fg3a))
+
+    # Wide Open 3s
+    wo <- dribdefense %>% filter(Season == year) %>% filter(idPlayer == as.integer(playerid)) %>% filter( CloseDefDistRange == "6+ Feet - Wide Open") %>% summarise(fga = sum(fg3a))
+  
+    playerdf <- cbind(year, playername, playerid, vt, t, o, wo)
+    remove(vt, t, o, wo)
+    
+    colnames(playerdf) <- c("a", "b", "c", "d", "e", "f", "g")
+    playerdf <- playerdf %>% mutate(h = d + e + f + g, k = d / h, l = e / h, m = f / h, n = g / h)
+    playerdf$d = NULL
+    playerdf$e = NULL
+    playerdf$f = NULL
+    playerdf$g = NULL
+    colnames(playerdf) <- c("Season", "PlayerName", "idPlayer", "fga3", "VeryTight", "Tight", "Open", "WideOpen")
+    
+    if(i == 1){
+      master5 <- playerdf
+    } else{
+      helper <- playerdf
+      master5 <- rbind(master5, helper)
+    }
+    i = i + 1
+}
+remove(helper, playerdf)
+
+shotdifficulty[is.na(shotdifficulty)] <- 0
+
+
+
+
+```

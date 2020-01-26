@@ -1,0 +1,64 @@
+---
+title: "NBA statr functions"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(dbplyr)
+library(nbastatR)
+library(ggplot2)
+```
+
+# Obtaining player dictionary:
+```{r}
+allplayers <- nba_players()
+remove(df_nba_player_dict)
+```
+
+# Obtaining rosters for 1996-2018 seasons
+```{r}
+rosters <- read.csv("/Users/patricksimpson/Desktop/NBAclustering/rosters.csv")
+rosters$X = NULL
+```
+
+# Obtaining passing data:
+```{r}
+passing <- read.csv("/Users/patricksimpson/Desktop/NBAclustering/Passing.csv")
+passing$X = NULL
+passing$PLAYER <- as.character(passing$PLAYER)
+passing$TEAM <- as.character(passing$TEAM)
+passing$SEASON <- as.character(passing$SEASON)
+```
+
+# Test (adding player photos to a dataframe)
+```{r}
+topiso <- isolation %>% filter(poss > 300)
+
+for(i in 1:nrow(topiso)){
+  playerid <- topiso[i,2]
+  newp <- phota %>% filter(idPlayer == as.integer(playerid))
+  myphoto <- newp[1,20]
+  
+  if(i == 1){
+    df <- as.data.frame(myphoto)
+  } else{
+    help <- as.data.frame(myphoto)
+    df <- rbind(df, help)
+  }
+}
+
+remove(playerid, newp, myphoto, help)
+
+newdf <- cbind(topiso, df)
+
+
+plot(newdf$pctFG, newdf$pctFTDrawn,
+points("https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/201566.png
+", "https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/201935.png
+", "https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/201942.png
+"))
+
+```

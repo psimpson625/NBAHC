@@ -1,0 +1,43 @@
+---
+title: "Playmaking component"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+season <- "2018-19"
+# Getting rosters for given season
+players <- rosters %>% filter(slugSeason == season)
+players$namePlayer <- as.character(players$namePlayer)
+players$idPlayer <- as.integer(players$idPlayer)
+
+for(i in 1:nrow(players)){
+  playername <- players[i,5] # Player Name
+  playerid <- players[i,14] # Player ID
+  PAPM <- passing %>% filter(SEASON == season & idPlayer == as.integer(playerid)) %>% mutate(papm = ifelse(GP >= 10, POTENTIAL_AST/MIN, 0)) # Getting the potential assists per minute for player...
+  PAPM <- PAPM[1,18]
+  mydf <- as.data.frame(cbind(playername, playerid, PAPM))
+  remove(playername, playerid, PAPM)
+  
+  if(i == 1){
+    playmaking <- mydf
+  } else{
+    helper <- mydf
+    playmaking <- rbind(playmaking, helper)
+  }
+  remove(helper, mydf)
+  
+  i = i + 1
+}
+
+colnames(playmaking) <- c("NamePlayer", "idPlayer", "PAPM")
+playmaking$NamePlayer <- players$namePlayer
+playmaking$PAPM <- as.numeric(levels(playmaking$PAPM))[playmaking$PAPM]
+playmaking$idPlayer <- players$idPlayer
+playmaking[is.na(playmaking)] <- 0
+
+```
+
