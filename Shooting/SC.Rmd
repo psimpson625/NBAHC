@@ -1,0 +1,238 @@
+---
+title: "SC"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(nbastatR)
+```
+
+# Creating Functions:
+```{r}
+df <- read.csv("/Users/patricksimpson/Desktop/NBAHC/dribdefense.csv")
+newdf <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Shooting/shootingdata.csv")
+
+threepointshooting <- function(id, season){
+  df <- df %>% filter(idPlayer == id & Season == season)
+  tight <- df %>% filter(CloseDefDistRange != "4-6 Feet - Open" & CloseDefDistRange != "6+ Feet - Wide Open")
+  open <- df %>% filter(CloseDefDistRange != "0-2 Feet - Very Tight" & CloseDefDistRange != "2-4 Feet - Tight" & CloseDefDistRange != "6+ Feet - Wide Open")
+  wideopen <- df %>% filter(CloseDefDistRange != "0-2 Feet - Open" & CloseDefDistRange != "2-4 Feet - Tight" & CloseDefDistRange != "4-6 Feet - Open")
+  
+  tightattempts <- sum(tight$fg3a) # Tight Attempts
+  tightmakes <- sum(tight$fg3m) # Tight Makes
+  openattempts <- sum(open$fg3a) # Open Attempts
+  openmakes <- sum(open$fg3m) # Open Makes
+  wideopenattempts <- sum(wideopen$fg3a) # Wide Open Attempts
+  wideopenmakes <- sum(wideopen$fg3m) # Wide Open Makes
+  
+  tightprop <- tightattempts / (tightattempts + openattempts + wideopenattempts) # Tight Proportion
+  openprop <- openattempts / (tightattempts + openattempts + wideopenattempts) # Open Proportion
+  wideopenprop <- wideopenattempts / (tightattempts + openattempts + wideopenattempts) # Wide Open Proportion
+  
+  tightpercentage <- tightmakes / tightattempts # Tight Percentage
+  openpercentage <- openmakes / openattempts # Open Percentage
+  wideopenpercentage <- wideopenmakes / wideopenattempts # Wide Open Percentage
+  
+  newdf <- newdf %>% filter(slugSeason == season & idPlayer == id & typeShot == "3PT Field Goal")
+  atb <- newdf %>% filter(zoneBasic == "Above the Break 3")
+  corner <- newdf %>% filter(zoneBasic != "Above the Break 3" & zoneBasic != "In The Paint (Non-RA)" & zoneBasic != "Mid-Range" & zoneBasic != "Restricted Area" & zoneBasic != "Backcourt")
+  
+  threeattemps <- nrow(newdf) # Total 3PT Attempts
+  
+  atbattempts <- nrow(atb) # ATB Attempts
+  atbmakes <- sum(atb$typeEvent == "Made Shot") # ATB makes
+  cornerattempts <- nrow(corner) # Corner Attempts
+  cornermakes <- sum(corner$typeEvent == "Made Shot") # Corner Makes
+  
+  atbprop <- atbattempts / (atbattempts + cornerattempts) # ATB Proportion
+  cornerprop <- cornerattempts / (atbattempts + cornerattempts) # Corner Proportion
+  
+  atbpercentage <- atbmakes / atbattempts # ATB Percentage
+  cornerpercentage <- cornermakes / cornerattempts # Corner Percentage
+  
+  playerdf <- as.data.frame(cbind(id, season, threeattemps, tightprop, openprop, wideopenprop, tightpercentage, openpercentage, wideopenpercentage, atbprop, cornerprop, atbpercentage, cornerpercentage))
+  
+  colnames(playerdf) <- c("idPlayer", "Season", "FG3A", "tightProp", "openProp", "wideopenProp", "tight%", "open%", "wideopen%",
+                      "atbProp", "cornerProp", "atb%", "corner%")
+  return(playerdf)                    
+}
+```
+
+
+# Creating Master 3 point shooting dataframe for 2018-19:
+```{r}
+myroster <- roster("2013-14")
+for(i in 1:nrow(myroster)){
+  id <- myroster[i,14]
+  if(i == 1){
+    shooting1314 <- threepointshooting(id, "2013-14")
+  } else{
+    helper <- threepointshooting(id, "2013-14")
+    shooting1314 <- rbind(shooting1314, helper)
+  }
+  i = i + 1
+}
+remove(id, helper, myroster)
+
+shooting <- rbind(shooting, shooting1718, shooting1617, shooting1516, shooting1415, shooting1314)
+remove(shooting1718, shooting1617, shooting1516, shooting1415, shooting1314)
+
+```
+
+# Adding player names to shooting dataframe:
+```{r}
+for(i in 1:nrow(shooting)){
+  if(i == 1){
+    playernames <- idtoname(shooting[i,1])
+  } else{
+    helper <- idtoname(shooting[i,1])
+    playernames <- rbind(playernames, helper)
+  }
+  i = i + 1
+}
+remove(helper)
+playernames <- as.data.frame(playernames)
+rownames(playernames) <- c()
+colnames(playernames) <- c("namePlayer")
+shooting <- cbind(shooting, playernames)
+shooting <- shooting %>% select(namePlayer, idPlayer, FG3A:`corner%`)
+remove(playernames)
+```
+
+# Three point percentages based on defense in a given season:
+```{r}
+openpercentage <- function(season){
+  df <- dribdefense %>% filter(CloseDefDistRange != "0-2 Feet - Very Tight" & CloseDefDistRange != "2-4 Feet - Tight" & CloseDefDistRange != "6+ Feet - Wide Open" & Season == season)
+  attempts <- sum(df$fg3a)
+  makes <- sum(df$fg3m)
+  percentage <- makes / attempts
+  return(percentage)
+}
+
+wideopenpercentage <- function(season){
+  df <- dribdefense %>% filter(CloseDefDistRange != "0-2 Feet - Very Tight" & CloseDefDistRange != "2-4 Feet - Tight" & CloseDefDistRange != "4-6 Feet - Open" & Season == season)
+  attempts <- sum(df$fg3a)
+  makes <- sum(df$fg3m)
+  percentage <- makes / attempts
+  return(percentage)
+}
+
+tightpercentage <- function(season){
+  df <- dribdefense %>% filter(CloseDefDistRange != "6+ Feet - Wide Open" & CloseDefDistRange != "4-6 Feet - Open" & Season == season)
+  attempts <- sum(df$fg3a)
+  makes <- sum(df$fg3m)
+  percentage <- makes / attempts
+  return(percentage)
+}
+```
+
+# Adding Shooting Rating Component
+```{r}
+shooting$Season <- as.character(shooting$Season)
+for(i in 1:nrow(shooting)){
+  id <- shooting[i,2]
+  year <- shooting[i,3]
+  component <- shooting[i,5]*(shooting[i,8]-tightpercentage(year)) + shooting[i,6]*(shooting[i,9]-openpercentage(year)) + shooting[i,7]*(shooting[i,10]-wideopenpercentage(year)) + shooting[i,11]*(shooting[i,13]-atb3percentage(year)) + shooting[i,12]*(shooting[i,14]-corner3percentage(year))
+  if(i == 1){
+    scomp <- as.data.frame(component)
+  } else{
+    help <- as.data.frame(component)
+    scomp <- as.data.frame(rbind(scomp, help))
+  }
+  i = i + 1
+}
+
+rownames(scomp) <- c()
+colnames(scomp) <- c("Component")
+shooting <- cbind(shooting, scomp)
+
+adjustedcomponent <- shooting %>% mutate(adjcomp = Component)
+
+```
+
+# Adding games played to dataframe
+```{r}
+for(i in 1:nrow(shooting)){
+  if(i == 1){
+    gp <- as.data.frame(gamesplayed(shooting[i,2], shooting[i,3]))
+  } else{
+    help <- as.data.frame(gamesplayed(shooting[i,2], shooting[i,3]))
+    gp <- as.data.frame(rbind(gp, help))
+  }
+  i = i + 1
+}
+
+rownames(gp) <- c()
+colnames(gp) <- c("gp")
+shooting <- cbind(shooting, gp)
+remove(gp)
+shooting <- shooting %>% select(namePlayer:Season, gp, FG3A:Component)
+```
+
+# Function to return position based on id and season:
+```{r}
+rosters <- read.csv("/Users/patricksimpson/Desktop/NBAHC/rosters.csv")
+position <- function(id, season){
+  df <- rosters %>% filter(slugSeason == season & idPlayer == id)
+  position <- df[1,7]
+  return(as.character(position))
+}
+
+```
+
+
+
+# Adding Position to Dataframe:
+```{r}
+for(i in 1:nrow(shooting)){
+  if(i == 1){
+    pos <- as.data.frame(position(shooting[i,2], shooting[i,3]))
+  } else{
+    help <- as.data.frame(position(shooting[i,2], shooting[i,3]))
+    pos <- as.data.frame(rbind(pos, help))
+  }
+  i = i + 1
+}
+colnames(pos) <- c("Position")
+rownames(pos) <- c()
+shooting <- cbind(shooting, pos)
+remove(pos)
+shooting <- shooting %>% select(namePlayer:Season, Position, gp:Component)
+
+```
+
+# FGA3 per game:
+```{r}
+shooting <- shooting %>% mutate(FG3AG = FG3A / gp)
+shooting <- shooting %>% select(namePlayer:FG3A, FG3AG, tightProp:Component)
+```
+
+# Adding position to DribDefense Data Frame:
+```{r}
+for(i in 1:nrow(dribdefense)){
+  if(i == 1){
+    pos <- as.data.frame(position(as.integer(dribdefense[i,12]), as.character(dribdefense[i,1])))
+  } else{
+    help <- as.data.frame(position(as.integer(dribdefense[i,12]), as.character(dribdefense[i,1])))
+    pos <- as.data.frame(rbind(pos, help))
+  }
+  i = i + 1
+}
+colnames(pos) <- c("Position")
+rownames(pos) <- c()
+dribdefense <- cbind(dribdefense, pos)
+remove(pos)
+dribdefense <- dribdefense %>% select(Season:slugTeam, Position, idPlayer:frequencyFG3A)
+```
+
+# Adjusted Shooting Component
+```{r}
+shooting <- shooting %>% mutate(adjcom = ifelse(FG3AG <= .5 & gp >= 40, Component - 2, ifelse(gp <= 40 & FG3AG <= 2, Component - 2, ifelse(gp <= 25, Component - .25, ifelse(FG3AG = 0, Component - 3, Component + FG3AG / gp)))))
+
+
+shooting <- shooting %>% mutate(adjcom = ifelse(FG3AG <= 1, Component - 2, ifelse(gp <= 25, Component - 2, ifelse(FG3AG <= 0, Component - 3, Component + FG3AG/gp))))
+
+```

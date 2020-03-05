@@ -113,6 +113,5 @@ remove(helper, playerdf)
 shotdifficulty[is.na(shotdifficulty)] <- 0
 
 
-
-
+# https://api.pbpstats.com/get-game-logs/nba?Season=2019-20&SeasonType=Regular+Season&EntityId=1629027&EntityType=Player&StatType=Totals&Table=Scoring
 ```

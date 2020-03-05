@@ -1,0 +1,61 @@
+---
+title: "Together"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading all components:
+```{r}
+shooting <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Shooting/threepointshooting.csv")
+shotcreate <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Shot Creating/shotcreating.csv")
+defense <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Defense/raptordf.csv")
+playmaking <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Playmaking/Component.csv")
+```
+
+# Combining dataframes...
+```{r}
+for(i in 1:nrow(shooting)){
+  if(i==1){
+  nr <- ifelse(is.na(as.numeric(shotcreate %>% filter(idPlayer == as.integer(shooting[i,2]) & Season == as.character(shooting[i,3])) %>% summarise(scComp))), 0, as.numeric(shotcreate %>% filter(idPlayer == as.integer(shooting[i,2]) & Season == as.character(shooting[i,3])) %>% summarise(scComp)))
+  } else{
+    helper <- ifelse(is.na(as.numeric(shotcreate %>% filter(idPlayer == as.integer(shooting[i,2]) & Season == as.character(shooting[i,3])) %>% summarise(scComp))), 0, as.numeric(shotcreate %>% filter(idPlayer == as.integer(shooting[i,2]) & Season == as.character(shooting[i,3])) %>% summarise(scComp)))
+    nr <- as.data.frame(rbind(nr, helper))
+  }
+  i = i + 1
+}
+
+
+shooting1 <- shooting %>% filter(Season != "2013-14" & Season != "2014-15")
+row.names(nr) <- c()
+colnames(nr) <- c("ShotCreating")
+shooting1 <- cbind(shooting1, nr)
+shooting1 <- shooting1 %>% select(namePlayer:gp, Shooting:ShotCreating)
+
+```
+
+
+# Creating dendogram for 2018-19 Season:
+```{r}
+lastseason <- shooting1 %>% filter(Season == "2018-19") %>% select(namePlayer, Shooting:ShotCreating)
+
+row.names(lastseason) <- lastseason$X
+lastseason$X = NULL
+
+# Scaling....
+ls <- lastseason
+ls$Shooting <- scale(ls$Shooting)
+ls$Defense <- scale(ls$Defense)
+ls$Playmaking <- scale(ls$Playmaking)
+ls$ShotCreating <- scale(ls$ShotCreating)
+
+distance <- dist(ls, method = "euclidean")
+clus <- hclust(distance, method = 'complete')
+tree <- as.data.frame(cutree(clus, k = 15))
+```
+
+
+
+

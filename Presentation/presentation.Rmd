@@ -1,0 +1,168 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+library(tools)
+library(formatR)
+library(calibrate)
+library(data.table)
+library(dplyr)
+library(formattable)
+library(tidyr)
+library(kableExtra)
+```
+
+
+
+
+
+```{r}
+
+
+
+x <- c(1,3,8,9,4)
+y <- c(2,3,10,7,12)
+z <- c("1", "2", "3", "4", "5")
+plot(x,y, pch = 16, col = c("green", "green", "red", "red", "blue"), xlim = c(0,9), ylim = c(0,13),
+     xlab = "", ylab = "")
+textxy(x, y, z, cex = 1.25, pch = 16)
+
+
+d11 <- sqrt((1-1)^2 + (2-2)^2)
+d12 <- sqrt((1-3)^2 + (2-3)^2)
+d13 <- sqrt((1-8)^2 + (2-10)^2)
+d14 <- sqrt((1-9)^2 + (2-7)^2)
+d15 <- sqrt((1-4)^2 + (2-12)^2)
+d22 <- sqrt((3-3)^2 + (3-3)^2)
+d23 <- sqrt((3-8)^2 + (3-10)^2)
+d24 <- sqrt((3-9)^2 + (3-7)^2)
+d25 <- sqrt((3-4)^2 + (3-12)^2)
+d33 <- sqrt((8-8)^2 + (10-10)^2)
+d34 <- sqrt((8-9)^2 + (10-7)^2)
+d35 <- sqrt((8-4)^2 + (10-12)^2)
+d44 <- sqrt((9-9)^2 + (7-7)^2)
+d45 <- sqrt((9-4)^2 + (7-12)^2)
+d55 <- sqrt((4-4)^2 + (12-12)^2)
+
+col0 <- c(1, 2, 3, 4, 5)
+col1 <- c(d11, d12, d13, d14, d15)
+col2 <- c(d12, d22, d23, d24, d25)
+col3 <- c(d13, d23, d33, d34, d35)
+col4 <- c(d14, d24, d34, d44, d45)
+col5 <- c(d15, d25, d35, d45, d55)
+
+t <- data.frame(col0, col1, col2, col3, col4, col5)
+
+#t <- matrix(c(d11, d12, d13, d14, d15,d12, d22, d23, d24, d25, d13, d23, d33, d34, d35, d14, d24, d34, d44, d45, d15, d25, d35, d45, d55), ncol = 5, byrow = TRUE)
+
+colnames(t) <- c(" ","1", "2", "3", "4", "5")
+#row.names(t) <- c("1", "2", "3", "4", "5")
+#t <- as.data.frame(t)
+
+#remove(d11, d12, d13, d14, d15, d22, d23, d24, d25, d33, d34, d35, d44, d45, d55)
+
+
+```
+
+```{r}
+#row.names(t) <- c("1", "2", "3", "4", "5 ")
+#kable(t, align = "c")
+#formattable(t, align = c("c", "c", "c", "c", "c", "c"),bootstrap_options = c("striped", "hover", "condensed"), full_width = F)
+```
+
+# First Distance Matrix
+```{r}
+kable(t, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                full_width = F) %>% column_spec(1:1, bold = T)
+```
+
+# Second Distance Matrix
+```{r}
+col0 <- c(12, 3, 4, 5)
+col1 <- c(0, max(d13, d23), max(d14, d24), max(d15, d25))
+col2 <- c(max(d13,d23), 0, d34, d35)
+col3 <- c(max(d14,d24), d34, 0, d45)
+col4 <- c(max(d15,d25), d35, d45, 0)
+
+t2 <- data.frame(col0, col1, col2, col3, col4)
+colnames(t2) <- c(" ","12", "3", "4", "5")
+
+kable(t2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                full_width = F) %>% column_spec(1:1, bold = T)
+```
+
+# Third Distance Matrix
+```{r}
+col0 <- c(12, 34, 5)
+col1 <- c(0, max(d13, d14, d23, d24), max(d15, d25))
+col2 <- c(max(d13, d14, d23, d24), 0, max(d35, d45))
+col3 <- c(max(d15, d25), max(d35, d45), 0)
+t3 <- data.frame(col0, col1, col2, col3)
+colnames(t3) <- c(" ", "12", "34", "5")
+kable(t3, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                full_width = F) %>% column_spec(1:1, bold = T)
+```
+
+# Fourth Distance Matrix
+```{r}
+col0 <- c(12, 345)
+col1 <- c(0, max(d13, d14, d15, d23, d24, d25))
+col2 <- c(max(d13, d14, d15, d23, d24, d25), 0)
+t4 <- data.frame(col0, col1, col2)
+colnames(t4) <- c(" ", "12", "345")
+kable(t4, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                full_width = F) %>% column_spec(1:1, bold = T)
+```
+
+# Fifth Distance Matrix
+```{r}
+col0 <- c(12345)
+col1 <- c(0)
+t5 <- data.frame(col0, col1)
+colnames(t5) <- c(" ", "12345")
+kable(t5, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                full_width = F) %>% column_spec(1:1, bold = T)
+
+
+
+
+```
+
+
+# Dendogram Example
+#```{r}
+x <- c(1,3,8,9,4)
+y <- c(2,3,10,7,12)
+graph <- data.frame(x,y)
+d <- dist(graph, method = "euclidean")
+res.hc <- hclust(d, method = "ward.D2")
+#x <- plot(res.hc, cex = 0.6, hang = -1)
+y <- plot(as.dendrogram(res.hc), ylab = " ", axes = FALSE)
+
+```
+
+#```{r}
+dend <- graph %>% # data
+        scale %>% # Scale the data
+        dist %>% # calculate a distance matrix, 
+        hclust(method = "ward.D2") %>% # Hierarchical clustering 
+        as.dendrogram # Turn the object into a dendrogram.
+plot(dend, axes = FALSE)
+
+#dend %>% set(labels_colors = c("green", "green", "blue", "red", "red")) %>% plot()
+
+dend %>% set("branches_k_color", 
+             value = c("green", "blue", "red"), k = 3) %>% 
+   plot(axes = FALSE)
+
+```

@@ -1,0 +1,73 @@
+---
+title: "ShotCreating"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Shot Creating Dataframe for individual player:
+```{r}
+dribdefense <- read.csv("/Users/patricksimpson/Desktop/NBAHC/dribdefense.csv")
+synergyoffense <- read.csv("/Users/patricksimpson/Desktop/NBAHC/synergyoffense.csv")
+
+shotcreating <- function(id, season){
+  drib <- dribdefense %>% filter(Season == season & idPlayer == id)
+  # Total FGA
+  fga <- sum(drib$fga)
+  # FGA off of 3-6 Dribbles
+  threesixatt <- as.integer(drib %>% filter(rangeDribble == "3-6 Dribbles") %>% summarise(sum(fga)))
+  # FGA made off of 3-6 Dribbles
+  threesixmake <- as.integer(drib %>% filter(rangeDribble == "3-6 Dribbles") %>% summarise(sum(fgm)))
+  # FGA attempted off of 7+ Dribbles
+  sevenatt <- as.integer(drib %>% filter(rangeDribble == "7+ Dribbles") %>% summarise(sum(fga)))
+  # FGM off of 7+ Dribbles
+  sevenmake <- as.integer(drib %>% filter(rangeDribble == "7+ Dribbles") %>% summarise(sum(fgm)))
+  # What I want in DataFrame:
+  prop36 <- threesixatt / fga
+  prop7 <- sevenatt / fga
+  percent36 <- threesixmake / threesixatt
+  percent7 <- sevenmake / sevenatt
+  
+  # Synergy Isolation Data
+  syn <- synergyoffense %>% filter(Season == season & idPlayer == id & PlayType == "Isolation")
+  possesions <- as.integer(syn[1,13])
+  freq <- as.numeric(syn[1,14])
+  ppp <- as.numeric(syn[1,18])
+  
+  # Retrieving Player Name:
+  name <- idtoname(id)
+  
+  # Creating Dataframe:
+  df <- as.data.frame(cbind(name, id, season, fga, prop36, prop7, percent36, percent7, possesions, freq, ppp))
+  rownames(df) <- c()
+  colnames(df) <- c("namePlayer", "idPlayer", "Season", "fga", "prop36", "prop7", "percent36", "percent7", "isoPoss", "isoFreq", "ppp")
+  
+  return(df)
+}
+```
+
+# Creating a Dataframe for every player over last 5 season (Back to 2015-16):
+```{r}
+seasons <- c("2018-19", "2017-18", "2016-17", "2015-16")
+for(j in 1:length(seasons)){
+  myroster <- roster(seasons[j])
+  for(i in 1:nrow(myroster)){
+    if(i == 1 & j == 1){
+      df <- as.data.frame(shotcreating(myroster[i,14], seasons[j]))
+    } else{
+      help <- as.data.frame(shotcreating(myroster[i,14], seasons[j]))
+      df <- as.data.frame(rbind(df, help))
+    }
+    i = i + 1
+  }
+  j = j + 1
+}
+remove(help, i, j)
+```
+
+# Mutating shotcreate dataframe:
+```{r}
+shotcreate <- shotcreate %>% mutate(scComp = ifelse(fga > 10 ,prop36*percent36,0) + ifelse(fga > 10, prop7*percent7,0) + ifelse(isoPoss > 20, isoFreq*ppp, 0))
+```

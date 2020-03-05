@@ -1,0 +1,211 @@
+---
+title: "Finishing"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Function that returns Finishing dataframe for single player:
+```{r}
+finishing <- function(id, season){
+  # Starting with synergy data:
+  syn <- synergyoffense %>% filter(Season == season & idPlayer == id)
+  # Roll
+  roll <- syn %>% filter(PlayType == "PRRollMan")
+  rollposs <- as.integer(roll[1,13])
+  rollfreq <- as.numeric(roll[1,14])
+  rollppp <- as.numeric(roll[1,18])
+  # Cut
+  cut <- syn %>% filter(PlayType == "Cut")
+  cutposs <- as.integer(cut[1,13])
+  cutfreq <- as.numeric(cut[1,14])
+  cutppp <- as.numeric(cut[1,18])
+  # OffRebound
+  reb <- syn %>% filter(PlayType == "OffRebound")
+  rebposs <- as.integer(reb[1,13])
+  rebfreq <- as.numeric(reb[1,14])
+  rebppp <- as.numeric(reb[1,18])
+  # Transition
+  trans <- syn %>% filter(PlayType == "Transition")
+  transposs <- as.integer(trans[1,13])
+  transfreq <- as.numeric(trans[1,14])
+  transppp <- as.numeric(trans[1,18])
+  
+  # Looking at ShootingData DF:
+  shot <- shootingdata %>% filter(slugSeason == season & idPlayer == id)
+  fga <- nrow(shot) # Number of shots attempted during year
+  restrictatt <- as.integer(shot %>% filter(zoneBasic == "Restricted Area") %>% summarise(n=n())) # RA attempts
+  restrictmakes <- as.integer(shot %>% filter(zoneBasic == "Restricted Area") %>% summarise(n=sum(typeEvent=="Made Shot")))
+  paintatt <- as.integer(shot %>% filter(zoneBasic == "In The Paint (Non-RA)") %>% summarise(n=n())) # Paint attempts
+  paintmakes <- as.integer(shot %>% filter(zoneBasic == "In The Paint (Non-RA)") %>% summarise(n=sum(typeEvent=="Made Shot")))
+  
+  restrictprop <- restrictatt / fga
+  restrictfgp <- restrictmakes / restrictatt
+  paintprop <- paintatt / fga
+  paintfgp <- paintmakes / paintatt
+  
+  name <- idtoname(id)
+  
+  df <- as.data.frame(cbind(name, id, season, rollposs, rollfreq, rollppp, cutposs, cutfreq, cutppp, rebposs, rebfreq, rebppp, transposs, transfreq, transppp, restrictprop, restrictfgp, paintprop, paintfgp))
+  row.names(df) <- c()
+  colnames(df) <- c("namePlayer", "idPlayer", "Season", "rollPoss", "rollFreq", "rollPPP", "cutPoss", "cutFreq", "cutPPP", "rebPoss", "rebFreq", "rebPPP", "transPoss", "transFreq", "transPPP", "restrictProp", "restrictFGP", "paintProp", "paintFGP")
+  return(df)
+}
+```
+
+# Creating dataframe of all players from 2013-14 through 2018-19
+```{r}
+seasons <- c("2018-19", "2017-18", "2016-17", "2015-16", "2014-15", "2013-14")
+for(j in 1:length(seasons)){
+  ros <- roster(seasons[j])
+  for(i in 1:nrow(ros)){
+    if(i == 1 & j == 1){
+      df <- as.data.frame(finishing(ros[i,14], seasons[j]))
+    } else{
+      help <- as.data.frame(finishing(ros[i,14], seasons[j]))
+      df <- as.data.frame(rbind(df, help))
+    }
+    i = i + 1
+  }
+  j = j + 1
+}
+```
+
+# Adding position to dataframe:
+```{r}
+df$idPlayer <- as.integer(as.character(df$idPlayer))
+df$Season <- as.character(df$Season)
+for(i in 1:nrow(df)){
+  if(i == 1){
+    pos <- as.data.frame(position(df[i,2], df[i,3]))
+  } else{
+    help <- as.data.frame(position(df[i,2], df[i,3]))
+    pos <- as.data.frame(rbind(pos,help))
+  }
+  i = i + 1
+}
+row.names(pos) <- c()
+colnames(pos) <- c("position")
+df <- cbind(df, pos)
+df <- df %>% select(namePlayer:Season, position, rollPoss:paintFGP)
+```
+
+# Adding Games Played to dataframe:
+```{r}
+for(i in 1:nrow(df)){
+  if(i == 1){
+    pos <- as.data.frame(gamesplayed(df[i,2], df[i,3]))
+  } else{
+    help <- as.data.frame(gamesplayed(df[i,2], df[i,3]))
+    pos <- as.data.frame(rbind(pos,help))
+  }
+  i = i + 1
+}
+row.names(pos) <- c()
+colnames(pos) <- c("gp")
+df <- cbind(df, pos)
+df <- df %>% select(namePlayer:Season, gp, position, rollPoss:paintFGP)
+```
+
+# Adding Minutes Played to dataframe:
+```{r}
+for(i in 1:nrow(df)){
+  if(i == 1){
+    pos <- as.data.frame(minutesplayed(df[i,2], df[i,3]))
+  } else{
+    help <- as.data.frame(minutesplayed(df[i,2], df[i,3]))
+    pos <- as.data.frame(rbind(pos,help))
+  }
+  i = i + 1
+}
+row.names(pos) <- c()
+colnames(pos) <- c("mp")
+df <- cbind(df, pos)
+df <- df %>% select(namePlayer:Season, gp, mp, position, rollPoss:paintFGP)
+```
+
+# Adding finishing Component:
+```{r}
+df <- df %>% mutate(comp = ifelse(rollPoss/gp >= 1 & gp >= 15, rollFreq*rollPPP, 0) + ifelse(transPoss/gp >= 1 & gp >= 15, transFreq*transPPP, 0) + ifelse(gp >= 15, restrictProp*restrictFGP,0))
+
+
+for(i in 1:nrow(df)){
+  if(i==1){
+  com <- ifelse(df[i,7]/df[i,4] >= 1 & df[i,4] >= 15, df[i,8]*(df[i,9]-rollppp(df[i,6],df[i,3])), 0) + 
+    ifelse(df[i,16]/df[i,4] >= 1 & df[i,4]>=1, df[i,17]*(df[i,18]-transppp(df[i,6],df[i,3])), 0)
+  } else{
+    helper <- ifelse(df[i,7]/df[i,4] >= 1 & df[i,4] >= 15, df[i,8]*(df[i,9]-rollppp(df[i,6],df[i,3])), 0) + 
+    ifelse(df[i,16]/df[i,4] >= 1 & df[i,4]>=1, df[i,17]*(df[i,18]-transppp(df[i,6],df[i,3])), 0)
+    com <- as.data.frame(rbind(com, helper))
+  }
+  i = i + 1
+}
+df <- cbind(df, com)
+
+
+```
+
+```{r}
+synergyoffense$Season <- as.character(synergyoffense$Season)
+synergyoffense$groupPos <- as.character(synergyoffense$groupPos)
+
+# Avg. roll PPP based on position:
+rollppp <- function(Position, season){
+  roll <- as.numeric(synergyoffense %>% filter(groupPos == Position & PlayType == "PRRollMan" & Season == season & poss >= 50) %>% summarise(mean(ppp)))
+  return(roll)
+}
+
+# Avg. trans PPP based on postion:
+transppp <- function(Position, season){
+  trans <- as.numeric(synergyoffense %>% filter(groupPos == Position & PlayType == "Transition" & Season == season & poss >= 50) %>% summarise(mean(ppp)))
+  return(trans)
+}
+
+restrictedpercentage <- function(postion, season){
+    restricted <- shootingdata %>% filter(slugSeason == season & zoneBasic == "Restricted Area") %>% group_by(typeEvent)
+    restrictedmakes <- sum(restricted$isShotMade, na.rm = TRUE)
+    restrictedattempts <- nrow(restricted)
+    restrictedpercentage <- restrictedmakes / restrictedattempts
+    return(restrictedpercentage)
+}
+```
+
+# Adding position to shooting dataframe:
+```{r}
+for(i in 1:nrow(shootingdata)){
+  if(i==1){
+    pos <- as.data.frame(position(shootingdata[i,3], shootingdata[i,1]))
+  } else{
+    help <- as.data.frame(position(shootingdata[i,3], shootingdata[i,1]))
+    pos <- as.data.frame(rbind(pos,help))
+  }
+  i = i + 1
+}
+remove(i, help)
+row.names(pos) <- c()
+colnames(pos) <- c("groupPos")
+
+```
+
+
+
+# Adding position to synergydf:
+```{r}
+for(i in 1:nrow(synergyoffense)){
+  if(i==1){
+    pos <- as.data.frame(position(as.integer(synergyoffense[i,4]), as.character(synergyoffense[i,2])))
+  } else{
+    help <- as.data.frame(position(as.integer(synergyoffense[i,4]), as.character(synergyoffense[i,2])))
+    pos <- as.data.frame(rbind(pos,help))
+  }
+  i = i + 1
+}
+remove(i, help)
+row.names(pos) <- c()
+colnames(pos) <- c("position")
+synergyoffense <- cbind(synergyoffense, pos)
+```
+

@@ -1,0 +1,97 @@
+---
+title: "Functions"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Shooting percentages by season
+```{r}
+# Corner 3 percentage for a given season:
+corner3percentage <- function(season = str()){
+  corner <- shootingdata %>% filter(slugSeason == season & zoneBasic != "Above the Break 3" & zoneBasic != "Backcourt" & zoneBasic != "In The Paint (Non-RA)" & zoneBasic != "Mid-Range" & zoneBasic != "Restricted Area")
+cornermakes <- sum(corner$isShotMade, na.rm = TRUE)
+cornerattempts <- nrow(corner)
+cornerpercentage <- cornermakes / cornerattempts
+return(cornerpercentage)
+}
+
+# ATB 3 percentage for a given season:
+atb3percentage <- function(season = str()){
+  atb <- shootingdata %>% filter(slugSeason == season & zoneBasic == "Above the Break 3") %>% group_by(typeEvent)
+  atbmakes <- sum(atb$isShotMade, na.rm = TRUE)
+  atbattempts <- nrow(atb)
+  atbpercentage <- atbmakes / atbattempts
+  return(atbpercentage)
+}
+
+# Restricted area percentage for a given season:
+restrictedpercentage <- function(season = str()){
+ restricted <- shootingdata %>% filter(slugSeason == season & zoneBasic == "Restricted Area") %>% group_by(typeEvent)
+ restrictedmakes <- sum(restricted$isShotMade, na.rm = TRUE)
+ restrictedattempts <- nrow(restricted)
+ restrictedpercentage <- restrictedmakes / restrictedattempts
+ return(restrictedpercentage)
+}
+
+# Floater-Range percentage for a given season:
+floaterpercentage <- function(season = str()){
+  floater <- shootingdata %>% filter(slugSeason == season & zoneBasic == "In The Paint (Non-RA)") %>% group_by(typeEvent)
+  floatermakes <- sum(floater$isShotMade, na.rm = TRUE)
+  floaterattempts <- nrow(floater)
+  floaterp <- floatermakes / floaterattempts
+  return(floaterp)
+}
+
+# Mid-Range percentage for a given season:
+midrangepercentage <- function(season = str()){
+    midrange <- shootingdata %>% filter(slugSeason == season & zoneBasic == "Mid-Range") %>% group_by(typeEvent)
+    midrangemakes <- sum(midrange$isShotMade, na.rm = TRUE)
+    midrangeattempts <- nrow(midrange)
+    midrangep <- midrangemakes / midrangeattempts
+    return(midrangep)
+  }
+  
+# Chances (shots + passes made a player makes in a given season)
+chances <- function(season = str(), id = int()){
+  passes <- Passing %>% filter(SEASON == season & idPlayer == id) %>% summarise(PASSES_MADE)
+  shots <- shootingdata %>% filter(slugSeason == season & idPlayer == id) %>% summarise(n())
+  totalchances = as.integer(passes) + as.integer(shots)
+  return(totalchances)
+}
+
+```
+
+# Returns player id given name:
+```{r}
+nametoid <- function(name){
+  rosters <- read.csv("/Users/patricksimpson/Desktop/NBAHC/rosters.csv")
+  rosters <- rosters %>% filter(namePlayer == name)
+  id <- rosters[1,14]
+  return(id)
+}
+```
+
+# Getting Games Played in a Season:
+```{r}
+gamesplayed <- function(id, season){
+  df <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Playmaking/Passing.csv")
+  df <- df %>% filter(idPlayer == id) %>% filter(SEASON == season)
+  value <- ifelse(is.na(as.integer(df[1,5])), 0, as.integer(df[1,5]))
+  return(value)
+}
+```
+
+# Getting Minutes Played in a Season:
+```{r}
+minutesplayed <- function(id, season){
+  df <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Playmaking/Passing.csv")
+  df <- df %>% filter(idPlayer == id) %>% filter(SEASON == season)
+  value <- ifelse(is.na(as.integer(df[1,8])), 0, as.integer(df[1,8]))
+  return(value)
+}
+```
+

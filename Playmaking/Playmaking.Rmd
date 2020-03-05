@@ -1,0 +1,84 @@
+---
+title: "Playmaking"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Creating playmaking df for last 5 years from pbp data:
+
+```{r}
+play1819 <- read.csv("/Users/patricksimpson/Desktop/Test/pbpdata 2013-14.csv")
+play1819 <- play1819 %>% select(Name, EntityId, Assists, X3ptAssists, Arc3Assists, Corner3Assists, AtRimAssists, Turnovers, BadPassTurnovers, DeadBallTurnovers, LiveBallTurnovers, OffPoss, Usage)
+play1819 <- mutate(play1819, Season = "2013-14")
+play1819 <- play1819 %>% select(Name:EntityId, Season, Assists:Usage)
+Playmaking <- rbind(Playmaking, play1819)
+remove(play1819)
+```
+
+# Creating function that returns playmaking dataframe for individual player:
+```{r}
+Playmaking$Season <- as.character(Playmaking$Season)
+playmake <- function(id, season){
+ # Looking at Passing DF first:
+  pass <- Passing %>% filter(idPlayer == id & SEASON == season)
+  if(is.na(pass[1,8])){
+    play <- as.data.frame(cbind(idtoname(id), id, season, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))
+    row.names(play) <- c()
+    colnames(play) <- c("namePlayer", "idPlayer", "Season", "Assists", "Fg3Ast", "Arc3Ast", "Corner3Ast", "RimAst", "Turnovers", "BadPassTO", "DeadBallTO", "LiveBallTO", "OffPoss", "Usage", "Minutes", "gp", "PassesMade", "PotAst", "SecAst")
+    return(play)
+  } else{
+  minutes <- as.integer(ifelse(is.na(pass[1,8]), 0, pass[1,8])) # Minutes Played
+  games <- as.integer(ifelse(is.na(pass[1,5]), 0, pass[1,5])) # Games Played
+  passesmade <- as.integer(ifelse(is.na(pass[1,9]), 0, pass[1,9]))
+  potentialast <- as.integer(ifelse(is.na(pass[1,13]), 0, pass[1,13]))
+  secondaryast <- as.integer(ifelse(is.na(pass[1,12]), 0, pass[1,12]))
+  # Looking at Playmaking DF now:
+  play <- Playmaking %>% filter(EntityId == id & Season == season)
+  play <- as.data.frame(cbind(play, minutes, games, passesmade, potentialast, secondaryast))
+  row.names(play) <- c()
+  colnames(play) <- c("namePlayer", "idPlayer", "Season", "Assists", "Fg3Ast", "Arc3Ast", "Corner3Ast", "RimAst", "Turnovers", "BadPassTO", "DeadBallTO", "LiveBallTO", "OffPoss", "Usage", "Minutes", "gp", "PassesMade", "PotAst", "SecAst")
+  play <- play %>% select(namePlayer:Season, Minutes, gp, Assists:Usage, PassesMade, PotAst, SecAst)
+  
+  return(play)}
+}
+
+```
+
+# Creating DataFrame for rosters over past 5 seasons:
+```{r}
+seasons <- c("2018-19", "2017-18", "2016-17", "2015-16", "2014-15", "2013-14")
+for(j in 1:length(seasons)){
+  myyear <- roster(seasons[j])
+  for(i in 1:nrow(myyear)){
+    if(i == 1 & j == 1){
+    df <- as.data.frame(playmake(myyear[i,14], seasons[j]))
+    } else{
+    help <- as.data.frame(playmake(myyear[i,14], seasons[j]))
+    df <- as.data.frame(rbind(df, help)) }
+  i = i + 1
+  }
+  j = j + 1
+}
+```
+
+# Creating Playmaking Component
+```{r}
+passcomp$PotAst <- as.integer(as.character(passcomp$PotAst))
+passcomp$Arc3Ast <- as.integer(as.character(passcomp$Arc3Ast))
+passcomp$Corner3Ast <- as.integer(as.character(passcomp$Corner3Ast))
+passcomp$RimAst <- as.integer(as.character(passcomp$RimAst))
+passcomp$Assists <- as.integer(as.character(passcomp$Assists))
+passcomp$LiveBallTO <- as.integer(as.character(passcomp$LiveBallTO))
+passcomp$Turnovers <- as.integer(as.character(passcomp$Turnovers))
+passcomp$DeadBallTO <- as.integer(as.character(passcomp$DeadBallTO))
+passcomp$PassesMade <- as.integer(as.character(passcomp$PassesMade))
+passcomp$Minutes <- as.integer(as.character(passcomp$Minutes))
+
+passcomp <- passcomp %>% mutate(playcomp = (Arc3Ast + Corner3Ast + RimAst)/Assists - (2/3)*(LiveBallTO/Turnovers) - (1/3)*(DeadBallTO/Turnovers) + ifelse(Minutes > 500 & gp > 10, (PotAst/PassesMade), 0) + ifelse(Minutes > 500 & gp > 10, (PotAst/Minutes),0))
+
+
+
+```
