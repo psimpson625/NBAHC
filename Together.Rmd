@@ -57,5 +57,3 @@ tree <- as.data.frame(cutree(clus, k = 15))
 ```
 
 
-
-

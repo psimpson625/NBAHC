@@ -1,4 +1,2 @@
 # NBAclustering
-Hierarchical clustering example using NBA data
-## Need to create presentation
-### Create visuals.... begin with introduction or just look at conclusions???
+Hierarchical clustering analysis to group NBA players by role and ability. 
