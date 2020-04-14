@@ -95,3 +95,88 @@ minutesplayed <- function(id, season){
 }
 ```
 
+# Function that returns three point shooting data for a player in a given season:
+```{r}
+dribdefense <- read.csv("/Users/patricksimpson/Desktop/NBAHC/dribdefense.csv")
+shootingdata <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Shooting/shootingdata.csv")
+
+threepointshooting <- function(id, season){
+  dribdefense <- dribdefense %>% filter(idPlayer == id & Season == season)
+  tight <- dribdefense %>% filter(CloseDefDistRange != "4-6 Feet - Open" & CloseDefDistRange != "6+ Feet - Wide Open")
+  open <- dribdefense %>% filter(CloseDefDistRange != "0-2 Feet - Very Tight" & CloseDefDistRange != "2-4 Feet - Tight" & CloseDefDistRange != "6+ Feet - Wide Open")
+  wideopen <- dribdefense %>% filter(CloseDefDistRange != "0-2 Feet - Open" & CloseDefDistRange != "2-4 Feet - Tight" & CloseDefDistRange != "4-6 Feet - Open")
+  
+  tightattempts <- sum(tight$fg3a) # Tight Attempts
+  tightmakes <- sum(tight$fg3m) # Tight Makes
+  openattempts <- sum(open$fg3a) # Open Attempts
+  openmakes <- sum(open$fg3m) # Open Makes
+  wideopenattempts <- sum(wideopen$fg3a) # Wide Open Attempts
+  wideopenmakes <- sum(wideopen$fg3m) # Wide Open Makes
+  
+  tightprop <- tightattempts / (tightattempts + openattempts + wideopenattempts) # Tight Proportion
+  openprop <- openattempts / (tightattempts + openattempts + wideopenattempts) # Open Proportion
+  wideopenprop <- wideopenattempts / (tightattempts + openattempts + wideopenattempts) # Wide Open Proportion
+  
+  tightpercentage <- tightmakes / tightattempts # Tight Percentage
+  openpercentage <- openmakes / openattempts # Open Percentage
+  wideopenpercentage <- wideopenmakes / wideopenattempts # Wide Open Percentage
+  
+  shootingdata <- shootingdata %>% filter(slugSeason == season & idPlayer == id & typeShot == "3PT Field Goal")
+  atb <- shootingdata %>% filter(zoneBasic == "Above the Break 3")
+  corner <- shootingdata %>% filter(zoneBasic != "Above the Break 3" & zoneBasic != "In The Paint (Non-RA)" & zoneBasic != "Mid-Range" & zoneBasic != "Restricted Area" & zoneBasic != "Backcourt")
+  
+  threeattempts <- nrow(shootingdata) # Total 3PT Attempts
+  
+  atbattempts <- nrow(atb) # ATB Attempts
+  atbmakes <- sum(atb$typeEvent == "Made Shot") # ATB makes
+  cornerattempts <- nrow(corner) # Corner Attempts
+  cornermakes <- sum(corner$typeEvent == "Made Shot") # Corner Makes
+  
+  atbprop <- atbattempts / (atbattempts + cornerattempts) # ATB Proportion
+  cornerprop <- cornerattempts / (atbattempts + cornerattempts) # Corner Proportion
+  
+  atbpercentage <- atbmakes / atbattempts # ATB Percentage
+  cornerpercentage <- cornermakes / cornerattempts # Corner Percentage
+  
+  name <- idtoname(id) # Player name
+  gp <- gamesplayed(id, season) # Games Played
+  mp <- minutesplayed(id, season) # Minutes Played
+  pos <- position(id, season) # Position Played
+  fg3ag <- threeattempts / gp # 3 point attempts per game
+  
+  playerdf <- as.data.frame(cbind(name, id, season, pos, gp, mp, threeattempts, fg3ag, tightprop, openprop, wideopenprop, tightpercentage, openpercentage, wideopenpercentage, atbprop, cornerprop, atbpercentage, cornerpercentage))
+  
+  colnames(playerdf) <- c("namePlayer", "idPlayer", "Season", "position", "gamesPlayed", "minutesPlayed", "FG3A", "FG3AG", "tightProp", "openProp", "wideopenProp", "tight%", "open%", "wideopen%",
+                      "atbProp", "cornerProp", "atb%", "corner%")
+  return(playerdf)                    
+}
+```
+
+# Three point percentages based on defender proximity in a given season:
+```{r}
+openpercentage <- function(season){
+  df <- dribdefense %>% filter(CloseDefDistRange != "0-2 Feet - Very Tight" & CloseDefDistRange != "2-4 Feet - Tight" & CloseDefDistRange != "6+ Feet - Wide Open" & Season == season)
+  attempts <- sum(df$fg3a)
+  makes <- sum(df$fg3m)
+  percentage <- makes / attempts
+  return(percentage)
+}
+
+wideopenpercentage <- function(season){
+  df <- dribdefense %>% filter(CloseDefDistRange != "0-2 Feet - Very Tight" & CloseDefDistRange != "2-4 Feet - Tight" & CloseDefDistRange != "4-6 Feet - Open" & Season == season)
+  attempts <- sum(df$fg3a)
+  makes <- sum(df$fg3m)
+  percentage <- makes / attempts
+  return(percentage)
+}
+
+tightpercentage <- function(season){
+  df <- dribdefense %>% filter(CloseDefDistRange != "6+ Feet - Wide Open" & CloseDefDistRange != "4-6 Feet - Open" & Season == season)
+  attempts <- sum(df$fg3a)
+  makes <- sum(df$fg3m)
+  percentage <- makes / attempts
+  return(percentage)
+}
+```
+
+

@@ -53,7 +53,7 @@ ls$ShotCreating <- scale(ls$ShotCreating)
 
 distance <- dist(ls, method = "euclidean")
 clus <- hclust(distance, method = 'complete')
-tree <- as.data.frame(cutree(clus, k = 15))
+tree <- as.data.frame(cutree(clus, k = 12))
 ```
 
 

@@ -1,0 +1,111 @@
+---
+title: "Paper Visuals"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(jpeg)
+library(png)
+library(grid)
+library(ggplot2)
+```
+
+# Shooting Component
+## Curry James Barchart
+```{r}
+curryjames <- as.data.frame(shootingdata %>% filter(namePlayer %in% c("Stephen Curry", "LeBron James") & slugSeason == "2018-19") %>% group_by(namePlayer) %>% summarise(count=n(), three = sum(zoneBasic %in% c("Above the Break 3", "Left Corner 3", "Right Corner 3", "Backcourt")), paint = sum(zoneBasic %in% c("In The Paint (Non-RA)", "Restricted Area"))) %>% mutate(paint_prop = paint / count, three_prop = three / count))
+  
+curryjames <- gather(curryjames, event, total, paint_prop:three_prop)
+curryjames %>% ggplot(aes(namePlayer, total, fill=event)) + geom_bar(stat = "identity", position = 'dodge') + ggtitle("Where Curry and James Get Shots From") + xlab("") + ylab("Proportion") + scale_fill_manual(name = "Location", labels = c("Paint", "Three"), values = c("#ADD8E6", "#E8ADAA")) + theme_classic() + theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+# Getting dataframe of average shooting distance for each player:
+```{r}
+shotdistance <- function(id, season){
+  playername <- idtoname(id)
+  height <- as.integer(myrosters %>% filter(idPlayer == id & slugSeason == season) %>% summarise(height=heightInches))
+  shotdistance <- as.numeric(shootingdata %>% filter(idPlayer==id & slugSeason==season) %>% summarise(dist = mean(distanceShot)))
+  playerdf <- as.data.frame(cbind(playername, id, season, height, shotdistance))
+  colnames(playerdf) <- c("playerName", "playerId", "slugSeason", "heightInches", "shotDistance")
+  return(playerdf)
+}
+
+rosters201819 <- myrosters %>% filter(slugSeason == "2018-19")
+for(i in 1:nrow(rosters201819)){
+  if(i==1){
+    distance <- shotdistance(rosters201819[i,14], rosters201819[i,1])
+  } else{
+    helper <- shotdistance(rosters201819[i,14], rosters201819[i,1])
+    distance <- rbind(distance, helper)
+  }
+  i = i + 1
+}
+
+```
+
+# LeBron shooting chart 2018-19
+```{r}
+leBron <- shootingdata %>% filter(namePlayer == "LeBron James" & slugSeason == "2018-19")
+picture <- readPNG("/Users/patricksimpson/Desktop/NBAHC/Visuals/Paper/LeBron1819.png", native = FALSE)
+picture <- rasterGrob(picture, width = unit(1,"npc"), height = unit(1,"npc"))
+
+court <- readJPEG("/Users/patricksimpson/Desktop/NBAHC/Visuals/nba_court.jpg")
+court <- rasterGrob(court, width = unit(1,"npc"), height = unit(1,"npc"))
+
+ggplot(leBron, aes(x=locationX, y=locationY)) + annotation_custom(court, -250, 250, -52, 420) +geom_point(aes(colour = typeEvent, alpha = 0.1)) + scale_color_manual(values = c("#FF0000", "#ADD8E6")) + xlim(-225,225) + ylim(-30, 397) + annotation_custom(picture, 145, 245, 310, 410) + theme(plot.title = element_text(hjust = 0.5),axis.ticks.x=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(), legend.position = "none") + xlab("") + ylab("")
+
+```
+
+# Curry shot chart 2018-19:
+```{r}
+Curry <- shootingdata %>% filter(namePlayer == "Stephen Curry" & slugSeason == "2018-19")
+picture <- readPNG("/Users/patricksimpson/Desktop/NBAHC/Visuals/Paper/Curry1819.png", native = FALSE)
+picture <- rasterGrob(picture, width = unit(1,"npc"), height = unit(1,"npc"))
+
+court <- readJPEG("/Users/patricksimpson/Desktop/NBAHC/Visuals/nba_court.jpg")
+court <- rasterGrob(court, width = unit(1,"npc"), height = unit(1,"npc"))
+
+ggplot(Curry, aes(x=locationX, y=locationY)) + annotation_custom(court, -250, 250, -52, 420) +geom_point(aes(colour = typeEvent, alpha = 0.1)) + scale_color_manual(values = c("#FF0000", "#ADD8E6")) + xlim(-225,225) + ylim(-30, 397) + annotation_custom(picture, 145, 245, 310, 410) + theme(plot.title = element_text(hjust = 0.5), axis.ticks.x=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(), legend.position = "none") + xlab("") + ylab("")
+
+```
+
+# 3PT shooting proportion by season:
+```{r}
+shootingdata %>% filter(slugSeason %in% c("2014-15", "2015-16", "2016-17", "2017-18", "2018-19")) %>% group_by(slugSeason) %>% summarise(totalShots = n(), threes = sum(zoneBasic %in% c("Above the Break 3", "Left Corner 3", "Right Corner 3", "Backcourt"))) %>% mutate(prop = threes / totalShots) %>% ggplot(aes(slugSeason, prop)) + geom_col() + ylab("Proportion of 3PT Attempts") + xlab("Season") + ggtitle("Proportion of 3PT Field Goals vs. Season") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(prop, 4)), position=position_dodge(width=0.9), vjust=-0.25) + scale_fill_manual(values = c("#B6B6B4", "#B6B6B4", "#B6B6B4","#B6B6B4","#B6B6B4"))
+
+```
+
+# Results from shooting component:
+```{r}
+library(magrittr) # Allows me to change colnames when piping
+library(xtable) # To transfer table to latex
+
+shootingcomp <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Shooting/test.csv")
+shootingcomp <- shootingcomp %>% filter(gamesPlayed > 15 & FG3A > 50)
+x <- reactable(shootingcomp[order(-shootingcomp$adjustment),] %>% head() %>% select(namePlayer, Season, FG3A, adjustment) %>% set_colnames(c("Player", "Season", "FG3A", "Component")))
+```
+
+# Mid-Range Decline:
+```{r}
+shootingdata %>% filter(slugSeason %in% c("2014-15", "2015-16", "2016-17", "2017-18", "2018-19")) %>% group_by(slugSeason) %>% summarise(totalShots = n(), mr = sum(zoneBasic %in% c("Mid-Range"))) %>% mutate(prop = mr / totalShots) %>% ggplot(aes(slugSeason, prop)) + geom_col() + ylab("Proportion of Mid-Range Attempts") + xlab("Season") + ggtitle("Proportion of Mid-Range Field Goal Attempts vs. Season") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(prop, 4)), position=position_dodge(width=0.9), vjust=-0.25) + scale_fill_manual(values = c("#B6B6B4", "#B6B6B4", "#B6B6B4","#B6B6B4","#B6B6B4"))
+```
+
+# Mid-Range By Quarter:
+```{r}
+shootingdata %>% filter(slugSeason %in% c("2014-15", "2015-16", "2016-17", "2017-18", "2018-19")) %>% filter(zoneBasic == "Mid-Range") %>% group_by(slugSeason) %>% summarise(totalshots = n(),q1 = sum(numberPeriod==1), q2 = sum(numberPeriod==2), q3 = sum(numberPeriod==3), q4 = sum(numberPeriod==4), q5 = sum(numberPeriod==5))
+
+
+
+```
+
+```{r}
+
+shootingdata %>% filter(slugSeason %in% c("2014-15", "2015-16", "2016-17", "2017-18", "2018-19")) %>% filter(numberPeriod==4) %>% group_by(slugSeason) %>% summarise(totalshots=n(), mr=sum(zoneBasic=="Mid-Range"), three = sum(zoneBasic %in% c("Above the Break 3", "Left Corner 3", "Right Corner 3")), paint=sum(zoneBasic %in% c("In The Paint (Non-RA)", "Restricted Area"))) %>% mutate(mr_prop = mr/totalshots)
+
+
+
+
+```
+

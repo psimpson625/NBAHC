@@ -1,0 +1,166 @@
+---
+title: "Inside Scoring"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Function to get finishing dataframe given player and year:
+```{r}
+synergyoffense <- read.csv("/Users/patricksimpson/Desktop/NBAHC/synergyoffense.csv")
+shootingdata <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Shooting/.shootingdata.csv.icloud")
+
+finish <- function(id, season){
+  name <- idtoname(id) # Player name
+  gp <- gamesplayed(id, season) # Games Played
+  mp <- minutesplayed(id, season) # Minutes Played
+  pos <- position(id, season) # Position
+  
+  # Looking at shooting data df:
+  # Paint Non-RA
+  df <- shootingdata %>% filter(idPlayer==id & slugSeason==season) # Player df for season
+  fga <- nrow(df) # Total shot attempts
+  paint <- df %>% filter(zoneBasic == "In The Paint (Non-RA)")
+  paint_fga <- nrow(paint) # Non-RA fga
+  paint_fgm <- as.integer(nrow(paint %>% filter(typeEvent == "Made Shot"))) # Non-RA fgm
+  paint_prop <- paint_fga / fga # Proportion of shots in the Paint Non-RA
+  paint_fgp <- paint_fgm / paint_fga # FGP in Paint
+  
+  # Restricted Area
+  restricted <- df %>% filter(zoneBasic == "Restricted Area")
+  restricted_fga <- nrow(restricted) # Restricted FGA
+  restricted_prop <- restricted_fga / fga # Proportion of shots in RA
+  restricted_fgm <- as.integer(nrow(restricted %>% filter(typeEvent == "Made Shot"))) # RA FGM
+  restricted_fgp <- restricted_fgm / restricted_fga # RA FGP
+  
+  # Looking at Synergy DF:
+  syn <- synergyoffense %>% filter(Season == season & idPlayer == id)
+  syn$fgm <- as.integer(as.character(syn$fgm))
+  
+  # Handoff
+  handoff <- syn %>% filter(PlayType == "Handoff")
+  handoffposs <- handoff[1,13]
+  handofffreq <- handoff[1,14]
+  handofffgag <- handoff[1,23]
+  handofffgm <- handoff[1,17]
+  handofffgp <- handoff[1,27]
+  
+  # Cut
+  cut <- syn %>% filter(PlayType == "Cut")
+  cutposs <- cut[1,13]
+  cutfreq <- cut[1,14]
+  cutfgag <- cut[1,23]
+  cutfgm <- cut[1,17]
+  cutfgp <- cut[1,27]
+  
+  # PRRollMan
+  prroll <- syn %>% filter(PlayType == "PRRollMan")
+  prrollposs <- prroll[1,13]
+  prrollfreq <- prroll[1,14]
+  prrollfgag <- prroll[1,23]
+  prrollfgm <- prroll[1,17]
+  prrollfgp <- prroll[1,27]
+  
+  # Putting dataframe together:
+  playerdf <- as.data.frame(cbind(name, id, season, gp, mp, pos, paint_prop, paint_fga, paint_fgp,
+                                  restricted_prop, restricted_fga, restricted_fgp,
+                                  handoffposs, handofffreq, handofffgag, handofffgm, handofffgp,
+                                  cutposs, cutfreq, cutfgag, cutfgm, cutfgp,
+                                  prrollposs, prrollfreq, prrollfgag, prrollfgm, prrollfgp))
+  
+  colnames(playerdf) <- c("namePlayer", "idPlayer", "season", "gamePlayed", "minutesPlayed", "position",
+                          "paintProp", "paintFGA", "paintFGP", "restrictedProp", "restrictedFGA", "restrictedFGP",
+                          "handoffPoss", "handoffFreq", "handoffFGA", "handoffFGM", "handoffFGP",
+                          "cutPoss", "cutFreq", "cutFGA", "cutFGM", "cutFGP",
+                          "prrollPoss", "prrollFreq", "prrollFGA", "prrollFGM", "prrollFGP")
+  
+  return(playerdf)
+}
+
+```
+
+
+
+# Function that yields season finishing dataframe:
+```{r}
+finishseason <- function(season){
+  ros <- myrosters %>% filter(slugSeason == season)
+  for(i in 1:nrow(ros)){
+    if(i == 1){
+      df <- as.data.frame(finish(ros[i,14], season))
+    } else{
+      help <- as.data.frame(finish(ros[i,14], season))
+      df <- as.data.frame(rbind(df, help))
+    }
+    i = i + 1
+  }
+  return(df)
+}
+
+```
+
+# Putting seasons into one master df:
+```{r}
+eighteen <- myyear
+seventeen <- finishseason("2017-18")
+sixteen <- finishseason("2016-17")
+fifteen <- finishseason("2015-16")
+fourteen <- finishseason("2014-15")
+thirteen <- finishseason("2013-14")
+masterfinish <- rbind(eighteen, seventeen, sixteen, fifteen, fourteen, thirteen)
+remove(eighteen, myyear, seventeen, sixteen, fifteen, fourteen, thirteen)
+
+```
+
+```{r}
+paint <- function(season){
+    restricted <- shootingdata %>% filter(slugSeason == season & zoneBasic == "In The Paint (Non-RA)") %>% group_by(typeEvent)
+    restrictedmakes <- sum(restricted$isShotMade, na.rm = TRUE)
+    restrictedattempts <- nrow(restricted)
+    restrictedpercentage <- restrictedmakes / restrictedattempts
+    return(restrictedpercentage)
+}
+```
+
+
+# Creating Component:
+```{r}
+masterfinish <- masterfinish %>% mutate(tot = paintFGA + restrictedFGA)
+masterfinish$season <- as.character(masterfinish$season)
+
+for(i in 1:nrow(masterfinish)){
+  if(i==1){
+    unadjust <- as.data.frame(masterfinish[i,7] *(masterfinish[i,9]-paint(masterfinish[i,3])) + 
+      masterfinish[i,10] *(masterfinish[i,12]-restrictedpercentage(masterfinish[i,3])))
+    colnames(unadjust) <- c("unadjust")
+  } else{
+    helper <- as.data.frame(masterfinish[i,7] *(masterfinish[i,9]-paint(masterfinish[i,3])) + 
+      masterfinish[i,10] *(masterfinish[i,12]-restrictedpercentage(masterfinish[i,3])))
+    colnames(helper) <- c("unadjust")
+    unadjust <- rbind(unadjust, helper)
+  }
+  i = i + 1
+}
+
+# Adding unadjusted component to dataframe:
+masterfinish <- cbind(masterfinish, unadjust)
+
+# Need the zscores of attempts for every season...
+
+x1314 <- masterfinish %>% filter(season == "2013-14") %>% mutate(totscale = scale(tot))
+x1415 <- masterfinish %>% filter(season == "2014-15") %>% mutate(totscale = scale(tot))
+x1516 <- masterfinish %>% filter(season == "2015-16") %>% mutate(totscale = scale(tot))
+x1617 <- masterfinish %>% filter(season == "2016-17") %>% mutate(totscale = scale(tot))
+x1718 <- masterfinish %>% filter(season == "2017-18") %>% mutate(totscale = scale(tot))
+x1819 <- masterfinish %>% filter(season == "2018-19") %>% mutate(totscale = scale(tot))
+
+newmaster <- rbind(x1314, x1415, x1516, x1617, x1718, x1819)
+remove(x1314, x1415, x1516, x1617, x1718, x1819)
+
+newmaster <- newmaster %>% mutate(comp_adjust = ifelse(unadjust >= 0, unadjust * (exp(totscale) / (1+exp(totscale))), unadjust + abs(unadjust * (exp(totscale) / (1+exp(totscale))))))
+
+
+```
+

@@ -1,0 +1,46 @@
+---
+title: "Defense"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading Raptor Defense
+```{r}
+raptor <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Defense/raptordf.csv")
+```
+
+# Editing Column Types:
+```{r}
+raptor$slugSeason <- as.character(raptor$slugSeason)
+raptor$raptorDefense <- as.numeric(as.character(raptor$raptorDefense))
+
+```
+
+
+# Adding Position to dataframe:
+```{r}
+for(i in 1:nrow(raptor)){
+  if(i==1){
+    mypos <- as.data.frame(position(raptor[i,2], raptor[i,3]))
+    colnames(mypos) <- c("position")
+  } else{
+    helper <- as.data.frame(position(raptor[i,2], raptor[i,3]))
+    colnames(helper) <- c("position")
+    mypos <- rbind(mypos, helper)
+  }
+  i = i + 1
+}
+remove(i, helper)
+raptor <- cbind(raptor, mypos)
+remove(mypos)
+raptor <- raptor %>% select(namePlayer:slugSeason, position, GP:raptorDefense)
+```
+
+# Removing those who played less than 15 games:
+```{r}
+raptor <- raptor %>% filter(GP > 14 & MP > 100)
+```
+

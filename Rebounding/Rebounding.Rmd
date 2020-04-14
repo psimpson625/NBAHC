@@ -1,0 +1,83 @@
+---
+title: "Rebounding"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Creating a function to obtain rebounding data on a player given name and year
+```{r}
+rebounding <- function(id, season){
+
+playername <- idtoname(id)
+pos <- as.data.frame(position(id, season))
+colnames(pos) <- c("Position")
+myseason <- as.data.frame(season)
+colnames(myseason) <- c("Season")
+
+gp <- gamesplayed(id, season)
+mp <- gamesplayed(id, season)
+
+lookup = paste("/Users/patricksimpson/Desktop/R/PBP Data/pbpdata ", season, ".csv", sep = "")
+mydf <- read.csv(lookup)
+mydf <- mydf %>% filter(RowId == id) %>% select(Name, RowId, GamesPlayed, Minutes, DefRebounds, FTDefRebounds, OffRebounds, Rebounds)
+
+if(nrow(mydf)==0){
+  mydf <- cbind(playername, id, season, gp, mp, pos, 0, 0, 0, 0)
+  colnames(mydf) <- c("Name", "RowId", "Season", "GamesPlayed", "Minutes", "Position", "DefRebounds", "FTDefRebounds", "OffRebounds", "Rebounds")
+}else{
+mydf <- cbind(mydf, myseason, pos)
+mydf <- mydf %>% select(Name:RowId, Season, GamesPlayed:Minutes, Position, DefRebounds:Rebounds)
+}
+return(mydf)
+}
+```
+
+# Creating a rebounding dataframe for each category
+```{r}
+for(i in 1:nrow(myrosters)){
+  if(i == 1){
+    rebdf <- rebounding(myrosters[i,14], myrosters[i,1])
+  } else{
+    helper <- rebounding(myrosters[i,14], myrosters[i,1])
+    rebdf <- rbind(rebdf, helper)
+  }
+  i = i + 1
+}
+remove(i, helper)
+```
+
+# Removing free throw rebounds...
+```{r}
+rebdf <- rebdf %>% mutate(TrueRebounds = Rebounds - FTDefRebounds)
+```
+
+```{r}
+nba <- read.csv("/Users/patricksimpson/Desktop/Reb.csv")
+colnames(nba) <- c("column")
+nba$column <- as.character(nba$column)
+gordon <- as.data.frame(nba[c(1:35),])
+gordon <- t(gordon)
+rownames(gordon) <- c()
+
+for(i in 1:513){
+   if(i == 1){
+     playerdf <- as.data.frame(nba[c(i:35),])
+     playerdf <- as.data.frame(t(playerdf))
+     rownames(playerdf) <- c()
+   } else{
+     s <- (i-1)*37 + 1
+     r <- s+34
+     helper <- as.data.frame(nba[c(s:r),])
+     helper <- as.data.frame(t(helper))
+     rownames(helper) <- c()
+     playerdf <- rbind(playerdf, helper)
+   }
+  i = i + 1
+}
+
+
+```
+

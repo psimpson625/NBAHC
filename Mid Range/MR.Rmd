@@ -1,0 +1,99 @@
+---
+title: "MidRange"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Useful Functions:
+## Mid-Range League Percentage for given season:
+```{r}
+mrpercentage <- function(season){
+  df <- shootingdata %>% filter(slugSeason == season & zoneBasic == "Mid-Range")
+  mrmakes <- sum(df$isShotMade, na.rm = TRUE)
+  mrattempts <- nrow(df)
+  mrpercentage <- mrmakes / mrattempts
+  return(mrpercentage)
+}
+```
+
+## Mid-Range data on a Player given a Season:
+```{r}
+mrdata <- function(id, season){
+  df <- shootingdata %>% filter(slugSeason == season & idPlayer == id)
+  totalshots <- nrow(df) # Total Shot Attempts
+  df <- df %>% filter(zoneBasic == "Mid-Range")
+  midrangemakes <- sum(df$isShotMade, na.rm = TRUE) # Mid-Range Makes
+  midrangeattempts <- nrow(df) # Total Mid-Range Attempts
+  proportionmr <- midrangeattempts / (midrangeattempts+totalshots) # Proportion of midrange shots
+  midrangefgp <- midrangemakes / midrangeattempts # Mid-Range FGP
+  name <- idtoname(id) # Player Name
+  gp <- gamesplayed(id, season) # Games Played
+  mp <- minutesplayed(id, season) # Minutes Played
+  playerdf <- as.data.frame(cbind(name, id, season, gp, mp, midrangeattempts, proportionmr, midrangefgp))
+  return(playerdf)
+}
+```
+
+# Obtaining Roster DF over last 6 seasons (2013-2019):
+```{r}
+seasons <- c("2013-14", "2014-15", "2015-16", "2016-17", "2017-18", "2018-19")
+myrosters <- rosters %>% filter(slugSeason %in% seasons)
+remove(seasons)
+```
+
+# Creating Mid-Range Dataframe for season:
+```{r}
+myrosters$slugSeason <- as.character(myrosters$slugSeason)
+
+for(i in 1:nrow(myrosters)){
+  if(i==1){
+    mrdf <- as.data.frame(mrdata(myrosters[i,14], myrosters[i,1]))
+  } else{
+    helper <- as.data.frame(mrdata(myrosters[i,14], myrosters[i,1]))
+    mrdf <- as.data.frame(rbind(mrdf, helper))
+  }
+  i = i + 1
+}
+remove(helper, i)
+```
+
+# Adding MRComp:
+```{r}
+mrdf$season <- as.character(mrdf$season)
+
+for(i in 1:nrow(mrdf)){
+  if(i==1){
+    comp <- as.data.frame(mrdf[i,8] - mrpercentage(mrdf[i,3]))
+  } else{
+    helper <- as.data.frame(mrdf[i,8] - mrpercentage(mrdf[i,3]))
+    comp <- rbind(comp, helper)
+  }
+  i = i + 1
+}
+remove(helper)
+
+mrdf <- cbind(mrdf, comp)
+
+```
+
+```{r}
+#Scaling 2013-14
+x1314 <- mrdf %>% filter(season == "2013-14") %>% mutate(scaledmra = scale(midrangeattempts))
+x1415 <- mrdf %>% filter(season == "2014-15") %>% mutate(scaledmra = scale(midrangeattempts))
+x1516 <- mrdf %>% filter(season == "2015-16") %>% mutate(scaledmra = scale(midrangeattempts))
+x1617 <- mrdf %>% filter(season == "2016-17") %>% mutate(scaledmra = scale(midrangeattempts))
+x1718 <- mrdf %>% filter(season == "2017-18") %>% mutate(scaledmra = scale(midrangeattempts))
+x1819 <- mrdf %>% filter(season == "2018-19") %>% mutate(scaledmra = scale(midrangeattempts))
+
+newmrdf <- rbind(x1314, x1415, x1516, x1617, x1718, x1819)
+remove(x1314, x1415, x1516, x1617, x1718, x1819, x, extra, i)
+
+newmrdf1 <- newmrdf %>% mutate(comp_adjust = ifelse(comp >= 0, comp * (exp(scaledmra) / (1+exp(scaledmra))), comp + abs(comp * (exp(scaledmra) / (1+exp(scaledmra))))))
+
+```
+
+
+

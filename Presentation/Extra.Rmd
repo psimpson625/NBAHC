@@ -1,0 +1,34 @@
+---
+title: "Paper Graphs"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+library(tools)
+library(formatR)
+library(calibrate)
+library(data.table)
+library(dplyr)
+library(formattable)
+library(tidyr)
+library(kableExtra)
+```
+
+
+# SAMPLE DATASET
+```{r}
+x <- c(1,3,8,9,4)
+y <- c(2,3,10,7,12)
+
+plot(x,y, pch = 16, col = c("green", "green", "red", "red", "blue"), xlim = c(0,9), ylim = c(0,13), xlab = "", ylab = "", panel.first = grid())
+
+z <- as.data.frame(cbind(x,y))
+proximitymatrix <- dist(z, method = "euclidean")
+cluster <- hclust(proximitymatrix, method = "complete")
+tree <- cutree(cluster, k = 3)
+
+```
+

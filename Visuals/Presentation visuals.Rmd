@@ -1,0 +1,66 @@
+---
+title: "Visuals"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(jpeg)
+library(png)
+library(grid)
+library(ggplot2)
+```
+
+# Harden 18-19
+```{r}
+library(grid)
+library(jpeg)
+
+
+# plot using NBA court background and colour by shot zone
+ggplot(harden, aes(x=locationX, y=locationY)) + 
+      annotation_custom(court, -250, 250, -50, 420) +
+      geom_point(aes(colour = zoneBasic)) +
+      xlim(-250, 250) +
+      ylim(-50, 420)
+
+img2 <- readJPEG("/Users/patricksimpson/Desktop/nba_court.jpg")
+court <- rasterGrob(img, width = unit(1,"npc"), height = unit(1,"npc"))
+court2 <- rasterGrob(img2, width = unit(1,"npc"), height = unit(1,"npc"))
+
+pic <- readPNG("/Users/patricksimpson/Desktop/201935.png", native = FALSE)
+pic1 <- rasterGrob(pic, width = unit(1,"npc"), height = unit(1,"npc"))
+
+ggplot(harden, aes(x=locationX, y=locationY)) + annotation_custom(court2, -250, 250, -52, 420) + annotation_custom(pic1, 148, 248, 325, 425) +geom_point(aes(colour = typeEvent, alpha = 0.3)) + scale_color_manual(values = c("#009E73", "#FF0000"))
+
+```
+
+# Gerald Green 16-17
+```{r}
+library(jpeg)
+library(png)
+library(grid)
+library(ggplot2)
+
+gerald <- shootingdata %>% filter(namePlayer == "Gerald Green" & slugSeason == "2017-18")
+boston <- readJPEG("/Users/patricksimpson/Desktop/houston.jpg", native = FALSE)
+boston <- rasterGrob(boston, width = unit(1,"npc"), height = unit(1,"npc"))
+
+img2 <- readJPEG("/Users/patricksimpson/Desktop/nba_court.jpg")
+court <- rasterGrob(img, width = unit(1,"npc"), height = unit(1,"npc"))
+court2 <- rasterGrob(img2, width = unit(1,"npc"), height = unit(1,"npc"))
+
+
+
+ggplot(gerald, aes(x=locationX, y=locationY)) + annotation_custom(court2, -250, 250, -52, 420) + annotation_custom(boston, 145, 245, 310, 410) +geom_point(aes(colour = typeEvent, alpha = 0.3)) + scale_color_manual(values = c("#009E73", "#FF0000")) + xlim(-300,300) + ylim(-52, 450)
+
+
+```
+
+
+```{r}
+
+lastyear <- shootingdata %>% filter(slugSeason == "2018-19")
+ggplot(lastyear, aes(x=locationX, y=locationY)) + annotation_custom(court2, -250, 250, -52, 420) + geom_point(aes(colour = typeEvent, alpha = 0.5)) + scale_color_manual(values = c("#009E73", "#FF0000"))
+
+```

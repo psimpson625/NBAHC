@@ -80,5 +80,5 @@ passcomp$Minutes <- as.integer(as.character(passcomp$Minutes))
 passcomp <- passcomp %>% mutate(playcomp = (Arc3Ast + Corner3Ast + RimAst)/Assists - (2/3)*(LiveBallTO/Turnovers) - (1/3)*(DeadBallTO/Turnovers) + ifelse(Minutes > 500 & gp > 10, (PotAst/PassesMade), 0) + ifelse(Minutes > 500 & gp > 10, (PotAst/Minutes),0))
 
 
-
+playmaking <- playmaking %>% mutate(component = (Arc3Ast + Corner3Ast + RimAst)/Assists - (2/3)*(LiveBallTO/Turnovers) - (1/3)*(DeadBallTO/Turnovers))
 ```
