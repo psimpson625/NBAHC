@@ -179,4 +179,75 @@ tightpercentage <- function(season){
 }
 ```
 
+```{r}
+synergyoffense$Season <- as.character(synergyoffense$Season)
+synergyoffense$groupPos <- as.character(synergyoffense$groupPos)
 
+# Avg. roll PPP based on position:
+rollppp <- function(Position, season){
+  roll <- as.numeric(synergyoffense %>% filter(groupPos == Position & PlayType == "PRRollMan" & Season == season & poss >= 50) %>% summarise(mean(ppp)))
+  return(roll)
+}
+
+# Avg. trans PPP based on postion:
+transppp <- function(Position, season){
+  trans <- as.numeric(synergyoffense %>% filter(groupPos == Position & PlayType == "Transition" & Season == season & poss >= 50) %>% summarise(mean(ppp)))
+  return(trans)
+}
+
+restrictedpercentage <- function(postion, season){
+    restricted <- shootingdata %>% filter(slugSeason == season & zoneBasic == "Restricted Area") %>% group_by(typeEvent)
+    restrictedmakes <- sum(restricted$isShotMade, na.rm = TRUE)
+    restrictedattempts <- nrow(restricted)
+    restrictedpercentage <- restrictedmakes / restrictedattempts
+    return(restrictedpercentage)
+}
+```
+
+# Function that returns Finishing dataframe for single player:
+```{r}
+finishing <- function(id, season){
+  # Starting with synergy data:
+  syn <- synergyoffense %>% filter(Season == season & idPlayer == id)
+  # Roll
+  roll <- syn %>% filter(PlayType == "PRRollMan")
+  rollposs <- as.integer(roll[1,13])
+  rollfreq <- as.numeric(roll[1,14])
+  rollppp <- as.numeric(roll[1,18])
+  # Cut
+  cut <- syn %>% filter(PlayType == "Cut")
+  cutposs <- as.integer(cut[1,13])
+  cutfreq <- as.numeric(cut[1,14])
+  cutppp <- as.numeric(cut[1,18])
+  # OffRebound
+  reb <- syn %>% filter(PlayType == "OffRebound")
+  rebposs <- as.integer(reb[1,13])
+  rebfreq <- as.numeric(reb[1,14])
+  rebppp <- as.numeric(reb[1,18])
+  # Transition
+  trans <- syn %>% filter(PlayType == "Transition")
+  transposs <- as.integer(trans[1,13])
+  transfreq <- as.numeric(trans[1,14])
+  transppp <- as.numeric(trans[1,18])
+  
+  # Looking at ShootingData DF:
+  shot <- shootingdata %>% filter(slugSeason == season & idPlayer == id)
+  fga <- nrow(shot) # Number of shots attempted during year
+  restrictatt <- as.integer(shot %>% filter(zoneBasic == "Restricted Area") %>% summarise(n=n())) # RA attempts
+  restrictmakes <- as.integer(shot %>% filter(zoneBasic == "Restricted Area") %>% summarise(n=sum(typeEvent=="Made Shot")))
+  paintatt <- as.integer(shot %>% filter(zoneBasic == "In The Paint (Non-RA)") %>% summarise(n=n())) # Paint attempts
+  paintmakes <- as.integer(shot %>% filter(zoneBasic == "In The Paint (Non-RA)") %>% summarise(n=sum(typeEvent=="Made Shot")))
+  
+  restrictprop <- restrictatt / fga
+  restrictfgp <- restrictmakes / restrictatt
+  paintprop <- paintatt / fga
+  paintfgp <- paintmakes / paintatt
+  
+  name <- idtoname(id)
+  
+  df <- as.data.frame(cbind(name, id, season, rollposs, rollfreq, rollppp, cutposs, cutfreq, cutppp, rebposs, rebfreq, rebppp, transposs, transfreq, transppp, restrictprop, restrictfgp, paintprop, paintfgp))
+  row.names(df) <- c()
+  colnames(df) <- c("namePlayer", "idPlayer", "Season", "rollPoss", "rollFreq", "rollPPP", "cutPoss", "cutFreq", "cutPPP", "rebPoss", "rebFreq", "rebPPP", "transPoss", "transFreq", "transPPP", "restrictProp", "restrictFGP", "paintProp", "paintFGP")
+  return(df)
+}
+```
