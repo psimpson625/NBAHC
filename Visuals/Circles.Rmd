@@ -1,0 +1,59 @@
+---
+title: "Results"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading results
+```{r}
+clusters <- read.csv("/Users/patricksimpson/Desktop/NBAHC/Results/Clusters.csv")
+```
+
+# Did they make finals?
+```{r}
+clusters$postSeason <- as.character(clusters$postSeason)
+clusters %>% filter(slugSeason == "2018-19" & finals == "Y") %>% select(namePlayer, fit.cluster) %>% group_by(fit.cluster) %>% summarise(count=n()) %>% mutate(prop = count / sum(count))
+
+clusters %>% filter(slugSeason == "2018-19" & team %in% c("Memphis Grizzlies", "Phoenix Suns")) %>% select(namePlayer, fit.cluster) %>% group_by(fit.cluster) %>% summarise(count=n()) %>% mutate(prop = count / sum(count))
+
+```
+
+```{r}
+clusters %>% filter(slugSeason == "2017-18") %>% select(namePlayer, fit.cluster) %>% group_by(fit.cluster) %>% summarise(count=n()) %>% mutate(prop = count / sum(count))
+
+
+
+```
+
+
+
+# 2018-19 Cluster Analysis:
+```{r}
+
+clusters %>% filter(slugSeason == "2018-19") %>% group_by(fit.cluster) %>% summarise(shooting = mean(three), midrange = mean(midrange), defense = mean(defense), bpm = mean(BPM), vorp = mean(VORP), count=n())
+
+
+```
+
+
+
+```{r}
+
+#clusters %>% filter(slugSeason == "2018-19") %>% group_by(fit.cluster) %>% summarise(ppg = mean(PTS), apg = mean(AST), rpg = mean(TRB))
+
+#clusters %>% filter(slugSeason == "2018-19" & fit.cluster == 15) %>% dplyr::select(namePlayer)
+
+clusters %>% filter(slugSeason == "2018-19" & fit.cluster %in% c(3,7,8,12,14)) %>% ggplot(aes(OWS, DWS)) + geom_point(aes(colour = Archetype), size = 4) + theme_classic() + theme(legend.background = element_blank(), legend.box.background = element_rect(colour = "black"), legend.title.align = 0.5, legend.position = c(1.0, 0.2), legend.text = element_text(color = "black", size = 12), legend.title = element_text(color = "black", size = 12, face = "bold"),axis.title=element_text(size=14,face="bold")) + xlab("Offensive Win Shares") + ylab("Defensive Win Shares") + stat_ellipse(aes(OWS, DWS,color=Archetype),type = "norm")
+
+
+```
+
+```{r}
+clusters %>% filter(slugSeason == "2018-19" & fit.cluster %in% c(3,7,8,12,14)) %>% group_by(fit.cluster) %>% summarise(ppg = mean(PTS), rpg = mean(TRB), apg = mean(AST)) %>% dbplyr::select
+
+
+
+```

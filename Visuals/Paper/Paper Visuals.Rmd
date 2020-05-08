@@ -104,8 +104,165 @@ shootingdata %>% filter(slugSeason %in% c("2014-15", "2015-16", "2016-17", "2017
 
 shootingdata %>% filter(slugSeason %in% c("2014-15", "2015-16", "2016-17", "2017-18", "2018-19")) %>% filter(numberPeriod==4) %>% group_by(slugSeason) %>% summarise(totalshots=n(), mr=sum(zoneBasic=="Mid-Range"), three = sum(zoneBasic %in% c("Above the Break 3", "Left Corner 3", "Right Corner 3")), paint=sum(zoneBasic %in% c("In The Paint (Non-RA)", "Restricted Area"))) %>% mutate(mr_prop = mr/totalshots)
 
+```
 
+
+# Inside Scoring Proportion of attempts by Season
+```{r}
+shootingdata %>% filter(slugSeason %in% c("2014-15", "2015-16", "2016-17", "2017-18", "2018-19")) %>% group_by(slugSeason) %>% summarise(totalShots = n(), threes = sum(zoneBasic %in% c("In The Paint - (Non-RA)", "Restricted Area"))) %>% mutate(prop = threes / totalShots) %>% ggplot(aes(slugSeason, prop)) + geom_col() + ylab("Proportion") + xlab("Season") + ggtitle("Proportion of Paint Attempts vs. Season") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(prop, 4)), position=position_dodge(width=0.9), vjust=-0.25) + scale_fill_manual(values = c("#B6B6B4", "#B6B6B4", "#B6B6B4","#B6B6B4","#B6B6B4"))
+
+```
+
+# Efficiency based upon shot location:
+```{r}
+#shootingdata %>% filter(slugSeason %in% c("2014-15", "2015-16", "2016-17", "2017-18", "2018-19")) %>% group_by(zoneBasic) %>% summarise(made_shots = sum(isShotMade == TRUE), count = n()) %>% mutate(fgp = made_shots / count) %>% filter(zoneBasic != "Backcourt") %>% ggplot(aes(zoneBasic, fgp)) + geom_col() + ylab("Field Goal Percentage") + xlab("Shot Location") + ggtitle("Field Goal Percentage by Shot Location over last 5 Seasons") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(fgp, 4)), position=position_dodge(width=0.9), vjust=-0.25) + scale_fill_manual(values = c("#B6B6B4", "#B6B6B4", "#B6B6B4","#B6B6B4","#B6B6B4"))
+
+Loc <- as.data.frame(c("Three", "Mid-Range", "Paint"))
+Made <- as.data.frame(c(87183+15494+14827, 90070, 63898+209244))
+Attempted <- as.data.frame(c(249241+40550+38198, 225095, 158929+340168))
+x <- cbind(Loc, Made, Attempted)
+colnames(x) <- c("Location", "Made_shots", "FGA")
+x <- x %>% mutate(fgp = Made_shots / FGA, ppp = ifelse(Location %in% c("Three"), fgp*3, fgp*2))
+
+x1 <- gather(x, event, total, fgp:ppp)
+x1 %>% ggplot(aes(Location, total, fill=event)) + geom_bar(stat = "identity", position = 'dodge') + ggtitle("FGP and PPP Based on Shot Location (2013-19)") + xlab("") + ylab("") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(total, 4)),position=position_dodge(width=0.9), vjust=-0.25) + scale_fill_manual(name = "", labels = c("FGP", "PPP"), values = c("#ADD8E6", "#E8ADAA"))
+
+```
+
+# Proportion of pick and rolls:
+```{r}
+#library(gghighlight)
+
+#gghighlight_line(d, aes(idx, value, colour = type), predicate = max(value) > 20)
+
+#y<- synergyoffense %>% group_by(Season, PlayType) %>% summarise(count = sum(poss)) %>% mutate(tot = sum())
+#write.csv(y, "/Users/patricksimpson/Desktop/syn.csv", row.names = FALSE)
+#y <- read.csv("/Users/patricksimpson/Desktop/syn.csv")
+#y$Season <- as.factor(y$Season)
+y %>% ggplot(aes(Season2, prop, colour = PlayType)) + geom_line() + xlab("Season") + ylab("Proportion") + ggtitle("Halfcourt Offenses Over Last 4 Seasons") + theme_linedraw() + theme(plot.title = element_text(hjust = 0.5), panel.grid.major.x = element_blank())
 
 
 ```
 
+# Pick and Roll Diagram
+```{r}
+
+ggplot(data, aes(x=V1, y=V2)) + annotation_custom(court, -250, 250, -52, 420) + xlim(-228,228) + ylim(-32, 402) + xlab("") + ylab("") + theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank()) + annotate("text", x = 20, y = 260, label = "5", fontface = 2, size = 6, colour = "blue") + annotate("text", x = 0, y = 300, label = "1", fontface = 2, size = 6, colour = "blue") + annotate("text", x = 225, y = 5, label = "2", fontface = 2, size = 6, colour = "blue") + annotate("text", x = -225, y = 5, label = "4", fontface = 2, size = 6, colour = "blue") + annotate("text", x = -190, y = 200, label = "3", fontface = 2, size = 6, colour = "blue") + annotate("text", x = 0, y = 260, label = "A", fontface = 2, size = 6, colour = "red") + annotate("text", x = -175, y = 180, label = "C", fontface = 2, size = 6, colour = "red") + annotate("text", x = -200, y = 5, label = "D", fontface = 2, size = 6, colour = "red") + annotate("text", x = 200, y = 5, label = "B", fontface = 2, size = 6, colour = "red") + annotate("text", x = 20, y = 215, label = "E", fontface = 2, size = 6, colour = "red")
+```
+
+
+# Playmaking:
+```{r}
+#dribdefense %>% group_by(rangeDribble) %>% summarise(attempts = sum(fga), makes = sum(fgm)) %>% mutate(prop = attempts / sum(attempts), percentage = makes / attempts) %>% mutate(x = ifelse(rangeDribble %in% c("0 Dribbles", "1 Dribble"), "Assisted", "Unassisted"))
+
+#z<- as.data.frame(cbind(c("Assisted", "Unassisted"), c(0.4814128 + 0.1354275, 1-0.4814128-0.1354275), c((280402+79024) / (575129+161791), (61978+95411+54336) / (132629+205488+119632))))
+colnames(z) <- c("Type", "prop", "fgp")
+
+z$prop <- as.numeric(as.character(z$prop))
+z %>% ggplot(aes(Type, prop)) + geom_bar(stat = "identity", position = 'dodge') + ggtitle("Proportion of Assisted vs. Unassisted Attempts (2013-19)") + xlab("") + ylab("") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(prop, 4)),position=position_dodge(width=0.9), vjust=-0.25) + scale_fill_manual(name = "", labels = c("FGP", "PPP"), values = c("#000000", "#C0C0C0"))
+
+#z1 <- gather(z, event, total, prop:fgp)
+z1$total <- as.numeric(as.character(z1$total))
+
+z1 %>% ggplot(aes(Type, total, fill=event)) + geom_bar(stat = "identity", position = 'dodge') + ggtitle("Assisted vs. Unassisted FGP and Proportion of Shot Attempts (2013-19)") + xlab("") + ylab("") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(total, 4)),position=position_dodge(width=0.9), vjust=-0.25) + scale_fill_manual(name = "", labels = c("FGP", "Prop"),values = c("#ADD8E6", "#E8ADAA"))
+
+
+#x1 <- gather(x, event, total, fgp:ppp)
+#x1 %>% ggplot(aes(Location, total, fill=event)) + geom_bar(stat = "identity", position = 'dodge') + ggtitle("FGP and PPP Based on Shot Location (2013-19)") + xlab("") + ylab("") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(total, 4)),position=position_dodge(width=0.9), vjust=-0.25) + scale_fill_manual(name = "", labels = c("FGP", "PPP"), values = c("#000000", "#C0C0C0"))
+
+```
+
+# Isolation:
+```{r}
+dribdefense %>% group_by(rangeDribble) %>% summarise(made = sum(fgm), att = sum(fga)) %>% mutate(fgp = made/att) %>% ggplot(aes(rangeDribble, fgp)) + geom_bar(stat = "identity", position = 'dodge') + ggtitle("Assisted vs. Unassisted FGP and Proportion of Shot Attempts (2013-19)") + xlab("") + ylab("") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(fgp, 4)),position=position_dodge(width=0.9), vjust=-0.25)
+
+dribdefense %>% group_by(rangeDribble) %>% summarise(made3 = sum(fg3m), att3 = sum(fg3a)) %>% mutate(fg3p = made3 / att3)
+```
+
+# Defense
+```{r}
+
+teamstats %>% group_by(Season,Postseason) %>% summarise(avg = mean(Adjusted.DRtg.A)) %>% ggplot(aes(Season, avg, fill=Postseason)) + geom_bar(stat = "identity", position = 'dodge') + ggtitle("Adjusted Defensive Rating") + xlab("") + ylab("") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_text(aes(label=round(avg, 4)),position=position_dodge(width=0.9), vjust=-0.25) + scale_fill_manual(name = "Postseason", labels = c("No", "Yes"),values = c("#ADD8E6", "#E8ADAA"))
+
+
+teamstats %>% ggplot(aes(W, Adjusted.DRtg.A)) + geom_point() + xlab("Wins") + ylab("Adjusted Defensive Rating") + ggtitle("Adjusted Defensive Rating vs. Wins") + theme_classic() + theme(plot.title = element_text(hjust = 0.5)) + geom_smooth(method="lm")
+
+myreg <- lm(Adjusted.DRtg.A ~ W, data = teamstats)
+summary(myreg)
+```
+
+# RESULTS
+```{r}
+playerstats <- read.csv("/Users/patricksimpson/Desktop/KmeansResults.csv")
+```
+
+## 2015-16:
+```{r}
+playerstats %>% group_by(fit.cluster) %>% filter(slugSeason == "2015-16") %>% summarise(vorp = mean(VORP), bpm = mean(BPM), dpm = mean(DBPM), opm = mean(OBPM))
+
+playerstats %>% filter(fit.cluster == 11 & slugSeason == "2015-16") %>% select(namePlayer)
+# Positive VORPS: 2,3,5,6,8, 
+```
+
+```{r}
+playerstats %>% filter(slugSeason == "2015-16" & fit.cluster %in% c(2, 3, 5, 8, 11)) %>% group_by(fit.cluster) %>% summarise(pts = mean(PTS), rbd = mean(TRB), ast = mean(AST), sal = mean(Salary))
+
+
+```
+
+```{r}
+#testbook <- read.csv("/Users/patricksimpson/Desktop/Testbook.csv")
+testbook <- testbook %>% filter(Season == "2015-16")
+testbook$clus1 <- as.factor(testbook$clus1)
+testbook$clus2 <- as.factor(testbook$clus2)
+testbook$clus3 <- as.factor(testbook$clus3)
+testbook$clus4 <- as.factor(testbook$clus4)
+testbook$clus5 <- as.factor(testbook$clus5)
+testbook$clus8 <- as.factor(testbook$clus8)
+testbook$clus11 <- as.factor(testbook$clus11)
+testbook$Postseason <- as.factor(testbook$Postseason)
+
+
+accept_rank <- glm(Postseason ~ clus8, data = testbook, family = "binomial")
+summary(accept_rank)
+
+```
+
+## Clust 2
+```{r}
+
+post_2 <- glm(Postseason ~ clus2, data = testbook, family = "binomial")
+summary(post_2)
+predict(post_2, data.frame(clus2 = factor(c(1.0, 2.0, 3.0, 4.0, 5, 6, 7))), type = "response")
+```
+
+## Clust 3
+```{r}
+x3 <- lm(W ~ clus8, data = testbook)
+summary(x3)
+post_3 <- glm(Postseason ~ clus3, data = testbook, family = "binomial")
+summary(post_3)
+#predict(post_3, data.frame(clus3 = factor(c(1.0, 2.0))), type = "response")
+```
+
+
+
+```{r}
+GPAAdmit <- ggplot(data = testbook, aes(x = clus8, y = Postseason)) +
+  stat_smooth(method="glm",method.args=list(family="binomial"), se=FALSE)
+print(GPAAdmit + 
+        ggtitle("Admit Probability Given GPA") + 
+        theme(plot.title = element_text(hjust = 0.5)) +
+        labs (x = "GPA", y = "Admission Proability"))
+
+xgre <- seq(0, 5, 0.01)
+
+ygre <- predict(accept_rank, list(clus8 = xgre), type = "response")
+
+plot(testbook$clus8, testbook$Postseason, pch = 16, xlab = "GRE score", ylab = "Admission Probability", main = "Admission Probability given GRE score", xlim = c(0,5))
+
+lines(xgre, ygre)
+abline(v=800, col="blue", lty = 5)
+
+
+```

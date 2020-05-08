@@ -1,0 +1,109 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Teamstats
+```{r}
+teamstats <- read.csv("/Users/patricksimpson/Desktop/TeamStatistics.csv")
+```
+
+# 2015-16
+```{r}
+#playerstats %>% filter(slugSeason == "2015-16") %>% group_by(fit.cluster) %>% summarise(vorp = mean(VORP), count = n()) 
+myseason <- read.csv("/Users/patricksimpson/Desktop/1516.csv")
+
+#playerstats %>% filter(slugSeason == "2015-16" & fit.cluster %in% c(2, 3, 5, 8, 11)) %>% group_by(fit.cluster) %>% summarise(pts = mean(PTS), rbd = mean(TRB), ast = mean(AST), sal = mean(Salary))
+myseason$Cluster <- as.factor(myseason$Cluster)
+myseason %>% filter(slugSeason == "2015-16" & fit.cluster %in% c(2,3,5,8,11)) %>% ggplot(aes(OWS, DWS)) + geom_point(aes(colour = Cluster), size = 4) + theme_classic() + theme(legend.background = element_blank(), legend.box.background = element_rect(colour = "black"), legend.title.align = 0.5, legend.position = c(0.9, 0.2), legend.text = element_text(color = "black", size = 12), legend.title = element_text(color = "black", size = 8, face = "bold"),axis.title=element_text(size=14,face="bold")) + xlab("Offensive Win Shares") + ylab("Defensive Win Shares") + stat_ellipse(aes(OWS, DWS,color=Cluster),type = "norm")
+
+
+
+```
+
+
+
+
+
+
+# 2016-17
+```{r}
+#playerstats %>% filter(slugSeason == "2016-17") %>% group_by(fit.cluster) %>% summarise(vorp = mean(VORP), bpm = mean(BPM), dpm = mean(DBPM), opm = mean(OBPM), count = n())
+#2,4,6,15
+
+#playerstats %>% filter(slugSeason == "2016-17" & fit.cluster %in% c(2, 4, 6, 15)) %>% group_by(fit.cluster) %>% summarise(pts = mean(PTS), rbd = mean(TRB), ast = mean(AST), sal = mean(Salary))
+
+myseason <- read.csv("/Users/patricksimpson/Desktop/1617.csv")
+myseason$Cluster <- as.factor(myseason$Cluster)
+
+myseason %>% filter(slugSeason == "2016-17" & fit.cluster %in% c(2,4,6,15)) %>% ggplot(aes(OWS, DWS)) + geom_point(aes(colour = Cluster), size = 4) + theme_classic() + theme(legend.background = element_blank(), legend.box.background = element_rect(colour = "black"), legend.title.align = 0.5, legend.position = c(0.95, 0.15), legend.text = element_text(color = "black", size = 12), legend.title = element_text(color = "black", size = 12, face = "bold"),axis.title=element_text(size=14,face="bold")) + xlab("Offensive Win Shares") + ylab("Defensive Win Shares") + stat_ellipse(aes(OWS, DWS,color=Cluster),type = "norm")
+
+
+```
+
+
+# 2017-18:
+```{r}
+#playerstats %>% filter(slugSeason == "2017-18") %>% group_by(fit.cluster) %>% summarise(vorp = mean(VORP), bpm = mean(BPM), dpm = mean(DBPM), opm = mean(OBPM), count = n())
+#4,7,12,13
+
+#playerstats %>% filter(slugSeason == "2017-18" & fit.cluster %in% c(4, 7, 12, 13)) %>% group_by(fit.cluster) %>% summarise(pts = mean(PTS), rbd = mean(TRB), ast = mean(AST), sal = mean(Salary))
+
+myseason <- read.csv("/Users/patricksimpson/Desktop/1718.csv")
+myseason$Cluster <- as.factor(myseason$Cluster)
+
+myseason %>% filter(slugSeason == "2017-18" & fit.cluster %in% c(4,7,12,13)) %>% ggplot(aes(OWS, DWS)) + geom_point(aes(colour = Cluster), size = 4) + theme_classic() + theme(legend.background = element_blank(), legend.box.background = element_rect(colour = "black"), legend.title.align = 0.5, legend.position = c(0.9, 0.2), legend.text = element_text(color = "black", size = 12), legend.title = element_text(color = "black", size = 12, face = "bold"),axis.title=element_text(size=14,face="bold")) + xlab("Offensive Win Shares") + ylab("Defensive Win Shares") + stat_ellipse(aes(OWS, DWS,color=Cluster),type = "norm")
+
+```
+
+
+# 2018-19:
+```{r}
+playerstats %>% filter(slugSeason == "2018-19") %>% group_by(fit.cluster) %>% summarise(vorp = mean(VORP), bpm = mean(BPM), dpm = mean(DBPM), opm = mean(OBPM), count = n())
+#1,10,12,14,15
+
+playerstats %>% filter(slugSeason == "2018-19" & fit.cluster %in% c(1, 10, 12, 14, 15)) %>% group_by(fit.cluster) %>% summarise(pts = mean(PTS), rbd = mean(TRB), ast = mean(AST), sal = mean(Salary))
+
+
+
+```
+
+
+```{r}
+team1516 <- teamstats %>% filter(Season == "2015-16")
+#gradschool <- read.csv("https://stats.idre.ucla.edu/stat/data/binary.csv")
+GREAdmit <- ggplot(data = teamstats, aes(x = Adjusted.DRtg.A, y = Postseason)) + 
+  stat_smooth(method="glm",method.args=list(family="binomial"), se=FALSE)
+print(GREAdmit + 
+        ggtitle("Postseason Probability vs. Defensive Rating") + 
+        theme(plot.title = element_text(hjust = 0.5)) +
+        labs (x = "Defensive Rating", y = "Postseason Probability")
+)
+
+h <- glm(Postseason ~ Adjusted.DRtg.A, data = teamstats)
+summary(h)
+
+
+```
+
+```{r}
+atb <- as.numeric(shootingdata %>% filter(slugSeason == "2018-19" & zoneBasic == "Above the Break 3") %>% summarise(Made = sum(isShotMade == TRUE), ATT = n()) %>% mutate(pct = Made / ATT) %>% select(pct))
+
+corner <- as.numeric(shootingdata %>% filter(slugSeason == "2018-19" & zoneBasic %in% c("Left Corner 3", "Right Corner 3")) %>% summarise(Made = sum(isShotMade == TRUE), ATT = n()) %>% mutate(pct = Made / ATT) %>% select(pct))
+
+contest <- as.numeric(dribdefense %>% filter(Season == "2018-19" & CloseDefDistRange %in% c("0-2 Feet - Very Tight", "2-4 Feet - Tight")) %>% summarise(Made = sum(fg3m), ATT = sum(fg3a)) %>% mutate(pct = Made / ATT) %>% select(pct))
+
+open <- as.numeric(dribdefense %>% filter(Season == "2018-19" & CloseDefDistRange %in% c("4-6 Feet - Open")) %>% summarise(Made = sum(fg3m), ATT = sum(fg3a)) %>% mutate(pct = Made / ATT) %>% select(pct))
+
+wideopen <- as.numeric(dribdefense %>% filter(Season == "2018-19" & CloseDefDistRange %in% c("6+ Feet - Wide Open")) %>% summarise(Made = sum(fg3m), ATT = sum(fg3a)) %>% mutate(pct = Made / ATT) %>% select(pct))
+
+
+
+
+
+
+```
