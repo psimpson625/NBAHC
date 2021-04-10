@@ -1,2 +1,2 @@
 # NBAclustering
-Using hierarchical clustering analysis to group NBA players by ability. 
+Examining roster building strategy in the NBA using hierarchical cluster analysis 
